@@ -1,21 +1,21 @@
-import { ActorRef, assign, createMachine, Interpreter } from 'xstate';
-import { XStateDevInterface } from 'xstate/dev';
-import { stringifyState } from './serialize.ts';
+import { ActorRef, AnyStateMachine, assign, createMachine, Interpreter } from "xstate";
+import { XStateDevInterface } from "xstate/dev";
+import { stringifyState } from "./serialize";
 
-import { ReceiverEvent, Replacer } from './types.ts';
-import { stringify } from './utils.ts';
+import { ReceiverEvent, Replacer } from "./types";
+import { stringify } from "./utils";
 
 export type InspectMachineEvent =
   | ReceiverEvent
-  | { type: 'unload' }
-  | { type: 'disconnect' }
-  | { type: 'xstate.event'; event: string; service: string }
-  | { type: 'xstate.inspecting'; client: Pick<ActorRef<any, any>, 'send'> };
+  | { type: "unload" }
+  | { type: "disconnect" }
+  | { type: "xstate.event"; event: string; service: string }
+  | { type: "xstate.inspecting"; client: Pick<ActorRef<any, any>, "send"> };
 
 export function createInspectMachine(
   devTools: XStateDevInterface = (globalThis as any).__xstate__,
-  options?: { serialize?: Replacer | undefined }
-) {
+  options?: { serialize?: Replacer | undefined },
+): AnyStateMachine {
   const serviceMap = new Map<string, ActorRef<any, any>>();
 
   // Listen for services being registered and index them
@@ -27,76 +27,76 @@ export function createInspectMachine(
   return createMachine({
     types: {} as {
       context: {
-        client?: Pick<ActorRef<any, any>, 'send'>;
+        client?: Pick<ActorRef<any, any>, "send">;
       };
       events: InspectMachineEvent;
     },
-    initial: 'pendingConnection',
+    initial: "pendingConnection",
     context: {
-      client: undefined
+      client: undefined,
     },
     states: {
       pendingConnection: {},
       connected: {
         on: {
-          'service.state': {
-            actions: ({ context, event }) => context.client!.send(event)
+          "service.state": {
+            actions: ({ context, event }) => context.client!.send(event),
           },
-          'service.event': {
-            actions: ({ context, event }) => context.client!.send(event)
+          "service.event": {
+            actions: ({ context, event }) => context.client!.send(event),
           },
-          'service.register': {
-            actions: ({ context, event }) => context.client!.send(event)
+          "service.register": {
+            actions: ({ context, event }) => context.client!.send(event),
           },
-          'service.stop': {
-            actions: ({ context, event }) => context.client!.send(event)
+          "service.stop": {
+            actions: ({ context, event }) => context.client!.send(event),
           },
-          'xstate.event': {
+          "xstate.event": {
             actions: ({ event: e }) => {
               const { event } = e;
               const parsedEvent = JSON.parse(event);
               // TODO: figure out a different mechanism
               const service = serviceMap.get(parsedEvent.origin?.id!);
               service?.send(parsedEvent);
-            }
+            },
           },
           unload: {
             actions: ({ context }) => {
-              context.client!.send({ type: 'xstate.disconnect' });
-            }
+              context.client!.send({ type: "xstate.disconnect" });
+            },
           },
-          disconnect: 'disconnected'
-        }
+          disconnect: "disconnected",
+        },
       },
       disconnected: {
         entry: () => {
           sub.unsubscribe();
         },
-        type: 'final'
-      }
+        type: "final",
+      },
     },
     on: {
-      'xstate.inspecting': {
-        target: '.connected',
+      "xstate.inspecting": {
+        target: ".connected",
         actions: [
           assign({
-            client: ({ event }) => event.client
+            client: ({ event }) => event.client,
           }),
           ({ context }) => {
             devTools.services.forEach((service) => {
               context.client?.send({
-                type: 'service.register',
+                type: "service.register",
                 machine: stringify(service.logic, options?.serialize),
                 state: stringifyState(
                   service.getSnapshot(),
-                  options?.serialize
+                  options?.serialize,
                 ),
-                sessionId: service.sessionId
+                sessionId: service.sessionId,
               });
             });
-          }
-        ]
-      }
-    }
+          },
+        ],
+      },
+    },
   });
 }

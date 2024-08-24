@@ -1,6 +1,6 @@
 import safeStringify from 'fast-safe-stringify';
 import { createMachine, StateConfig } from 'xstate';
-import { ParsedReceiverEvent, ReceiverEvent } from './types.ts';
+import { ParsedReceiverEvent, ReceiverEvent } from './types';
 
 export function getLazy<T>(value: T): T extends () => infer R ? R : T {
   return typeof value === 'function' ? value() : value;

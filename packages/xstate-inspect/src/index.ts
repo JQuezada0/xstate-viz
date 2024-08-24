@@ -3,5 +3,5 @@ export {
   createWindowReceiver,
   createWebSocketReceiver,
   createDevTools
-} from './browser.ts';
-export * from './types.ts';
+} from './browser';
+export * from './types';

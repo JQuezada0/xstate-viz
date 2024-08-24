@@ -4,11 +4,13 @@ import {
   EventObject,
   createActor,
   Observer,
-  toObserver
+  toObserver,
+  Snapshot,
+  ActorLike
 } from 'xstate';
 import { XStateDevInterface } from 'xstate/dev';
-import { createInspectMachine, InspectMachineEvent } from './inspectMachine.ts';
-import { stringifyState } from './serialize.ts';
+import { createInspectMachine, InspectMachineEvent } from './inspectMachine';
+import { stringifyState } from './serialize';
 import type {
   Inspector,
   InspectorOptions,
@@ -18,13 +20,13 @@ import type {
   ServiceListener,
   WebSocketReceiverOptions,
   WindowReceiverOptions
-} from './types.ts';
+} from './types';
 import {
   getLazy,
   isReceiverEvent,
   parseReceiverEvent,
   stringify
-} from './utils.ts';
+} from './utils';
 
 const serviceMap = new Map<string, AnyActor>();
 
@@ -235,7 +237,7 @@ export function inspect(options?: InspectorOptions): Inspector | undefined {
   };
 }
 
-export function createWindowReceiver(options?: Partial<WindowReceiverOptions>) {
+export function createWindowReceiver(options?: Partial<WindowReceiverOptions>): ActorLike<ParsedReceiverEvent, ReceiverCommand> {
   const {
     window: ownWindow = window,
     targetWindow = window.self === window.top ? window.opener : window.parent
@@ -253,7 +255,7 @@ export function createWindowReceiver(options?: Partial<WindowReceiverOptions>) {
 
   ownWindow.addEventListener('message', handler);
 
-  const actorRef = {
+  const actorRef: ActorLike<ParsedReceiverEvent, ReceiverCommand> = {
     name: 'xstate.windowReceiver',
 
     send(event: ReceiverCommand) {
@@ -285,7 +287,7 @@ export function createWindowReceiver(options?: Partial<WindowReceiverOptions>) {
     getSnapshot() {
       return latestEvent;
     }
-  };
+  } as ActorLike<ParsedReceiverEvent, ReceiverCommand>;
 
   actorRef.send({
     type: 'xstate.inspecting'
@@ -294,13 +296,13 @@ export function createWindowReceiver(options?: Partial<WindowReceiverOptions>) {
   return actorRef;
 }
 
-export function createWebSocketReceiver(options: WebSocketReceiverOptions) {
+export function createWebSocketReceiver(options: WebSocketReceiverOptions): ActorLike<ParsedReceiverEvent, ReceiverCommand> {
   const { protocol = 'ws' } = options;
   const ws = new WebSocket(`${protocol}://${options.server}`);
   const observers = new Set<Observer<ParsedReceiverEvent>>();
   let latestEvent: ParsedReceiverEvent;
 
-  const actorRef = {
+  const actorRef: ActorLike<ParsedReceiverEvent, ReceiverCommand> = {
     name: 'xstate.webSocketReceiver',
     send(event: ReceiverCommand) {
       ws.send(stringify(event, options.serialize));
@@ -323,7 +325,7 @@ export function createWebSocketReceiver(options: WebSocketReceiverOptions) {
     getSnapshot() {
       return latestEvent;
     }
-  };
+  } as ActorLike<ParsedReceiverEvent, ReceiverCommand>;
 
   ws.onopen = () => {
     actorRef.send({

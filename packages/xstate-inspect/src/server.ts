@@ -1,9 +1,9 @@
 import { WebSocketServer } from 'ws';
 import { Actor, EventFromLogic, EventObject, createActor } from 'xstate';
 import { XStateDevInterface } from 'xstate/dev';
-import { InspectMachineEvent, createInspectMachine } from './inspectMachine.ts';
-import { Inspector, Replacer } from './types.ts';
-import { stringify } from './utils.ts';
+import { InspectMachineEvent, createInspectMachine } from './inspectMachine';
+import { Inspector, Replacer } from './types';
+import { stringify } from './utils';
 
 const services = new Set<Actor<any>>();
 const serviceMap = new Map<string, Actor<any>>();
