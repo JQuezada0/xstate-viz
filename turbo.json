@@ -1,0 +1,28 @@
+{
+    "$schema": "https://turbo.build/schema.json",
+    "tasks": {
+        "install": {
+            "inputs": ["**/package.json"]
+        },
+        "install-dependencies": {
+            "dependsOn": ["install"]
+        },
+        "//#check-types": {},
+        "check-types": {
+            "inputs": ["**/src", "!**/node_modules"] 
+        },
+        "build-js": {
+            "dependsOn": ["^build-js", "install-dependencies"]
+        },
+        "check": {
+            "inputs": ["**/src", "!**/node_modules"],
+            "dependsOn": ["//#check-types", "install-dependencies"] 
+        },
+        "build-all": {
+            "dependsOn": ["build-js"]
+        },
+        "build-and-check": {
+            "dependsOn": ["build-all", "check"]
+        }
+    }
+}

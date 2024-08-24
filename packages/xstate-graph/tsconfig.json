@@ -1,0 +1,14 @@
+{
+    "extends": "../../tsconfig.base",
+    "compilerOptions": {
+        "noEmit": false,
+        "emitDeclarationOnly": true,
+        "outDir": "build",
+        "tsBuildInfoFile": "build/.tsbuildinfo",
+        "paths": {
+            "~/*": ["./src/*"]
+        }
+    },    
+    "include": ["src"],
+    "exclude": ["node_modules"]
+}

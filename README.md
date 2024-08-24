@@ -1,11 +1,19 @@
 # XState (Legacy) Visualizer
 
-Visualize [XState](https://stately.ai/docs/xstate) state machines and statecharts in real-time.
+## Note
+
+Visualize [XState5](https://stately.ai/docs/xstate) state machines and statecharts in real-time.
+
+**This is a WIP fork to update xstate to v5**
+
+Everything below this point is from the original repo's readme
+
+----------------------------------
+
+## Usage
 
 [🪄 Use the new Stately visual editor](https://state.new?source=viz-readme)
 [🔗 Use the legacy Visualizer](https://stately.ai/viz).
-
-## Usage
 
 [Visit stately.ai/viz to use the Visualizer](https://stately.ai/viz?source=viz-readme).
 

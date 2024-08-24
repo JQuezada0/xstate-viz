@@ -1,0 +1,19 @@
+{
+    "extends": "../../tsconfig.base",
+    "references": [
+        { "path": "../../packages/xstate-graph" },
+        { "path": "../../packages/xstate-inspect" },
+        { "path": "../../packages/xstate-react" }
+    ],
+    "compilerOptions": {
+        "paths": {
+            "@xstate/graph": ["../../packages/xstate-graph/src"],
+            "@xstate/inspect": ["../../packages/xstate-inspect/src"],
+            "@xstate/react": ["../../packages/xstate-react/src"],
+        },
+        "outDir": "build",
+        "noEmit": true
+    },
+    "include": ["src"],
+    "exclude": ["node_modules"]
+}

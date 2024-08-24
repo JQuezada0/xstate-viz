@@ -1,0 +1,21 @@
+{
+    "name": "@xstate-open-viz/visualizer",
+    "version": "0.0.1",
+    "private": true,
+    "license": "MIT",
+    "dependencies": {
+        "@xstate/graph": "workspace:*",
+        "@xstate/react": "workspace:*",
+        "@xstate/inspect": "workspace:*"
+    },
+    "scripts": {
+        "check": "tsc"
+    },
+    "eslintConfig": {
+      "extends": [
+        "react-app"
+      ]
+    },
+    "devDependencies": {},
+    "packageManager": "bun@1.1.26"
+  }
