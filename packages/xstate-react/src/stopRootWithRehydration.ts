@@ -13,7 +13,7 @@ const forEachActor = (
   }
 };
 
-export function stopRootWithRehydration(actorRef: AnyActorRef) {
+export function stopRootWithRehydration(actorRef: AnyActorRef): void {
   // persist snapshot here in a custom way allows us to persist inline actors and to preserve actor references
   // we do it to avoid setState in useEffect when the effect gets "reconnected"
   // this currently only happens in Strict Effects but it simulates the Offscreen aka Activity API

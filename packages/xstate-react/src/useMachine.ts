@@ -1,5 +1,5 @@
 import { Actor, ActorOptions, AnyStateMachine, StateFrom } from 'xstate';
-import { useActor } from './useActor.ts';
+import { useActor } from './useActor';
 
 /** @alias useActor */
 export function useMachine<TMachine extends AnyStateMachine>(

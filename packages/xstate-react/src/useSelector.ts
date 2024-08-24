@@ -1,6 +1,6 @@
-import { useCallback } from 'react';
-import { useSyncExternalStoreWithSelector } from 'use-sync-external-store/shim/with-selector';
-import { AnyActorRef, SnapshotFrom } from 'xstate';
+import { useCallback } from "react";
+import { useSyncExternalStoreWithSelector } from "use-sync-external-store/shim/with-selector";
+import { AnyActorRef, SnapshotFrom } from "xstate";
 
 type SyncExternalStoreSubscribe = Parameters<
   typeof useSyncExternalStoreWithSelector
@@ -11,16 +11,16 @@ function defaultCompare<T>(a: T, b: T) {
 }
 
 export function useSelector<
-  TActor extends Pick<AnyActorRef, 'subscribe' | 'getSnapshot'> | undefined,
-  T
+  TActor extends Pick<AnyActorRef, "subscribe" | "getSnapshot"> | undefined,
+  T,
 >(
   actor: TActor,
   selector: (
     snapshot: TActor extends { getSnapshot(): infer TSnapshot }
       ? TSnapshot
-      : undefined
+      : undefined,
   ) => T,
-  compare: (a: T, b: T) => boolean = defaultCompare
+  compare: (a: T, b: T) => boolean = defaultCompare,
 ): T {
   const subscribe: SyncExternalStoreSubscribe = useCallback(
     (handleStoreChange) => {
@@ -30,7 +30,7 @@ export function useSelector<
       const { unsubscribe } = actor.subscribe(handleStoreChange);
       return unsubscribe;
     },
-    [actor]
+    [actor],
   );
 
   const boundGetSnapshot = useCallback(() => actor?.getSnapshot(), [actor]);
@@ -40,7 +40,7 @@ export function useSelector<
     boundGetSnapshot,
     boundGetSnapshot,
     selector,
-    compare
+    compare,
   );
 
   return selectedSnapshot;
