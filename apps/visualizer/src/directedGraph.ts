@@ -1,8 +1,8 @@
-import type { ElkExtendedEdge } from 'elkjs';
-import { StateNode, TransitionDefinition } from 'xstate';
-import { flatten } from 'xstate/lib/utils';
-import { Point } from './pathUtils';
-import { getChildren } from './utils';
+import type { ElkExtendedEdge } from "elkjs";
+import { StateNode, TransitionDefinition } from "xstate";
+import { Point } from "./pathUtils";
+import { getChildren } from "./utils";
+import { flatten } from "@xstate/scxml";
 
 export type DirectedGraphLabel = {
   text: string;
@@ -18,7 +18,7 @@ export type DirectedGraphEdgeConfig = {
   target: StateNode;
   label: DirectedGraphLabel;
   transition: TransitionDefinition<any, any>;
-  sections: ElkExtendedEdge['sections'];
+  sections: ElkExtendedEdge["sections"];
 };
 export type DirectedGraphNodeConfig = {
   id: string;
@@ -69,7 +69,7 @@ export class DirectedGraphNode {
 
   constructor(
     config: DirectedGraphNodeConfig,
-    public parent?: DirectedGraphNode,
+    public parent?: DirectedGraphNode | undefined,
   ) {
     this.id = config.id;
     this.data = config.stateNode;
@@ -94,7 +94,7 @@ export class DirectedGraphEdge {
   public target: StateNode;
   public label: DirectedGraphLabel;
   public transition: TransitionDefinition<any, any>;
-  public sections: ElkExtendedEdge['sections'];
+  public sections: ElkExtendedEdge["sections"];
   constructor(config: DirectedGraphEdgeConfig) {
     this.id = config.id;
     this.source = config.source;
@@ -106,9 +106,12 @@ export class DirectedGraphEdge {
 }
 
 export function toDirectedGraph(stateNode: StateNode): DirectedGraphNode {
+  const transitions = Array.from(stateNode.transitions.entries())
+
   const edges: DirectedGraphEdge[] = flatten(
-    stateNode.transitions.map((t, transitionIndex) => {
-      const targets = t.target ? t.target : [stateNode];
+    transitions.map(([transitionName, transitionDefinition], transitionIndex) => {
+      return transitionDefinition.map((t) => {
+        const targets = t.target ? t.target : [stateNode];
 
       return targets.map((target, targetIndex) => {
         const edge = new DirectedGraphEdge({
@@ -126,7 +129,8 @@ export function toDirectedGraph(stateNode: StateNode): DirectedGraphNode {
 
         return edge;
       });
-    }),
+      })
+    }).flat(),
   );
 
   const graph = new DirectedGraphNode({
