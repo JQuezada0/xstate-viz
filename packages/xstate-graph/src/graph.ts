@@ -22,7 +22,7 @@ import type {
   AnyStateNode,
   TraversalConfig
 } from './types.ts';
-import { createMockActorScope } from './actorScope.ts';
+import { createMockActorScope } from './actorScope';
 
 /**
  * Returns all state nodes of the given `node`.

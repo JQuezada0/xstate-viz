@@ -1,15 +1,15 @@
-export { TestModel, createTestModel } from './TestModel.ts';
-export { adjacencyMapToArray, getAdjacencyMap } from './adjacency.ts';
+export { TestModel, createTestModel } from './TestModel';
+export { adjacencyMapToArray, getAdjacencyMap } from './adjacency';
 export {
   getStateNodes,
   joinPaths,
   serializeEvent,
   serializeSnapshot,
   toDirectedGraph
-} from './graph.ts';
-export type { AdjacencyMap, AdjacencyValue } from './graph.ts';
-export { getPathsFromEvents } from './pathFromEvents.ts';
-export * from './pathGenerators.ts';
-export { getShortestPaths } from './shortestPaths.ts';
-export { getSimplePaths } from './simplePaths.ts';
-export * from './types.ts';
+} from './graph';
+export type { AdjacencyMap, AdjacencyValue } from './graph';
+export { getPathsFromEvents } from './pathFromEvents';
+export * from './pathGenerators';
+export { getShortestPaths } from './shortestPaths';
+export { getSimplePaths } from './simplePaths';
+export * from './types';

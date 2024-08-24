@@ -6,7 +6,8 @@
         "outDir": "build",
         "tsBuildInfoFile": "build/.tsbuildinfo",
         "paths": {
-            "~/*": ["./src/*"]
+            "~/*": ["./src/*"],
+            "~": ["./src/index.ts"],
         }
     },    
     "include": ["src"],

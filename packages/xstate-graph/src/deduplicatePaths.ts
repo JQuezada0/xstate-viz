@@ -1,6 +1,6 @@
-import { StatePath } from '@xstate/graph';
+import { StatePath } from '~/types';
 import { EventObject, Snapshot } from 'xstate';
-import { simpleStringify } from './utils.ts';
+import { simpleStringify } from '~/utils';
 
 /**
  * Deduplicates your paths so that A -> B is not executed separately to A -> B

@@ -30,6 +30,6 @@ const validateState = (state: AnyStateNode) => {
   }
 };
 
-export const validateMachine = (machine: AnyStateMachine) => {
+export const validateMachine = (machine: AnyStateMachine): void => {
   validateState(machine.root);
 };

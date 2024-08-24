@@ -3,16 +3,16 @@ import {
   getAdjacencyMap,
   joinPaths,
   AdjacencyValue,
-  serializeSnapshot
-} from '@xstate/graph';
+  serializeSnapshot,
+} from "~";
 import type {
   AdjacencyMap,
   SerializedEvent,
   SerializedSnapshot,
   StatePath,
   Step,
-  TraversalOptions
-} from '@xstate/graph';
+  TraversalOptions,
+} from "~";
 import {
   EventObject,
   ActorLogic,
@@ -28,13 +28,10 @@ import {
   SnapshotFrom,
   StateValue,
   TODO,
-  InputFrom
-} from 'xstate';
-import { deduplicatePaths } from './deduplicatePaths.ts';
-import {
-  createShortestPathsGen,
-  createSimplePathsGen
-} from './pathGenerators.ts';
+  InputFrom,
+} from "xstate";
+import { deduplicatePaths } from "~/deduplicatePaths";
+import { createShortestPathsGen, createSimplePathsGen } from "~/pathGenerators";
 import type {
   EventExecutor,
   PathGenerator,
@@ -42,19 +39,15 @@ import type {
   TestParam,
   TestPath,
   TestPathResult,
-  TestStepResult
-} from './types.ts';
-import {
-  formatPathTestResult,
-  getDescription,
-  simpleStringify
-} from './utils.ts';
-import { validateMachine } from './validateMachine.ts';
+  TestStepResult,
+} from "./types.ts";
+import { formatPathTestResult, getDescription, simpleStringify } from "~/utils";
+import { validateMachine } from "~/validateMachine";
 
 type GetPathOptions<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject,
-  TInput
+  TInput,
 > = Partial<TraversalOptions<TSnapshot, TEvent, TInput>> & {
   /**
    * Whether to allow deduplicate paths so that paths that are contained by
@@ -75,7 +68,7 @@ type GetPathOptions<
 export class TestModel<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject,
-  TInput
+  TInput,
 > {
   public options: TestModelOptions<TSnapshot, TEvent, TInput>;
   public defaultTraversalOptions?: TraversalOptions<TSnapshot, TEvent, TInput>;
@@ -88,51 +81,51 @@ export class TestModel<
       serializeTransition: (state, event) =>
         `${simpleStringify(state)}|${event?.type}`,
       events: [],
-      stateMatcher: (_, stateKey) => stateKey === '*',
+      stateMatcher: (_, stateKey) => stateKey === "*",
       logger: {
         log: console.log.bind(console),
-        error: console.error.bind(console)
-      }
+        error: console.error.bind(console),
+      },
     };
   }
 
   constructor(
     public testLogic: ActorLogic<TSnapshot, TEvent, TInput>,
-    options?: Partial<TestModelOptions<TSnapshot, TEvent, TInput>>
+    options?: Partial<TestModelOptions<TSnapshot, TEvent, TInput>>,
   ) {
     this.options = {
       ...this.getDefaultOptions(),
-      ...options
+      ...options,
     };
   }
 
   public getPaths(
     pathGenerator: PathGenerator<TSnapshot, TEvent, TInput>,
-    options?: GetPathOptions<TSnapshot, TEvent, TInput>
+    options?: GetPathOptions<TSnapshot, TEvent, TInput>,
   ): Array<TestPath<TSnapshot, TEvent>> {
     const allowDuplicatePaths = options?.allowDuplicatePaths ?? false;
     const paths = pathGenerator(this.testLogic, this._resolveOptions(options));
     return (allowDuplicatePaths ? paths : deduplicatePaths(paths)).map(
-      this._toTestPath
+      this._toTestPath,
     );
   }
 
   public getShortestPaths(
-    options?: GetPathOptions<TSnapshot, TEvent, TInput>
+    options?: GetPathOptions<TSnapshot, TEvent, TInput>,
   ): Array<TestPath<TSnapshot, TEvent>> {
     return this.getPaths(createShortestPathsGen(), options);
   }
 
   public getShortestPathsFrom(
     paths: Array<TestPath<TSnapshot, TEvent>>,
-    options?: GetPathOptions<TSnapshot, TEvent, TInput>
+    options?: GetPathOptions<TSnapshot, TEvent, TInput>,
   ): Array<TestPath<TSnapshot, TEvent>> {
     const resultPaths: TestPath<TSnapshot, TEvent>[] = [];
 
     for (const path of paths) {
       const shortestPaths = this.getShortestPaths({
         ...options,
-        fromState: path.state
+        fromState: path.state,
       });
       for (const shortestPath of shortestPaths) {
         resultPaths.push(this._toTestPath(joinPaths(path, shortestPath)));
@@ -143,21 +136,21 @@ export class TestModel<
   }
 
   public getSimplePaths(
-    options?: GetPathOptions<TSnapshot, TEvent, TInput>
+    options?: GetPathOptions<TSnapshot, TEvent, TInput>,
   ): Array<TestPath<TSnapshot, TEvent>> {
     return this.getPaths(createSimplePathsGen(), options);
   }
 
   public getSimplePathsFrom(
     paths: Array<TestPath<TSnapshot, TEvent>>,
-    options?: GetPathOptions<TSnapshot, TEvent, TInput>
+    options?: GetPathOptions<TSnapshot, TEvent, TInput>,
   ): Array<TestPath<TSnapshot, TEvent>> {
     const resultPaths: TestPath<TSnapshot, TEvent>[] = [];
 
     for (const path of paths) {
       const shortestPaths = this.getSimplePaths({
         ...options,
-        fromState: path.state
+        fromState: path.state,
       });
       for (const shortestPath of shortestPaths) {
         resultPaths.push(this._toTestPath(joinPaths(path, shortestPath)));
@@ -168,36 +161,36 @@ export class TestModel<
   }
 
   private _toTestPath = (
-    statePath: StatePath<TSnapshot, TEvent>
+    statePath: StatePath<TSnapshot, TEvent>,
   ): TestPath<TSnapshot, TEvent> => {
     function formatEvent(event: EventObject): string {
       const { type, ...other } = event;
 
       const propertyString = Object.keys(other).length
         ? ` (${JSON.stringify(other)})`
-        : '';
+        : "";
 
       return `${type}${propertyString}`;
     }
 
     const eventsString = statePath.steps
       .map((s) => formatEvent(s.event))
-      .join(' → ');
+      .join(" → ");
     return {
       ...statePath,
       test: (params: TestParam<TSnapshot, TEvent>) =>
         this.testPath(statePath, params),
       description: isMachineSnapshot(statePath.state)
         ? `Reaches ${getDescription(
-            statePath.state as any
+            statePath.state as any,
           ).trim()}: ${eventsString}`
-        : JSON.stringify(statePath.state)
+        : JSON.stringify(statePath.state),
     };
   };
 
   public getPathsFromEvents(
     events: TEvent[],
-    options?: GetPathOptions<TSnapshot, TEvent, TInput>
+    options?: GetPathOptions<TSnapshot, TEvent, TInput>,
   ): Array<TestPath<TSnapshot, TEvent>> {
     const paths = getPathsFromEvents(this.testLogic, events, options);
 
@@ -216,13 +209,13 @@ export class TestModel<
   public async testPath(
     path: StatePath<TSnapshot, TEvent>,
     params: TestParam<TSnapshot, TEvent>,
-    options?: Partial<TestModelOptions<TSnapshot, TEvent, TInput>>
+    options?: Partial<TestModelOptions<TSnapshot, TEvent, TInput>>,
   ): Promise<TestPathResult> {
     const testPathResult: TestPathResult = {
       steps: [],
       state: {
-        error: null
-      }
+        error: null,
+      },
     };
 
     try {
@@ -230,7 +223,7 @@ export class TestModel<
         const testStepResult: TestStepResult = {
           step,
           state: { error: null },
-          event: { error: null }
+          event: { error: null },
         };
 
         testPathResult.steps.push(testStepResult);
@@ -263,14 +256,14 @@ export class TestModel<
   public async testState(
     params: TestParam<TSnapshot, TEvent>,
     state: TSnapshot,
-    options?: Partial<TestModelOptions<TSnapshot, TEvent, TInput>>
+    options?: Partial<TestModelOptions<TSnapshot, TEvent, TInput>>,
   ): Promise<void> {
     const resolvedOptions = this._resolveOptions(options);
 
     const stateTestKeys = this._getStateTestKeys(
       params,
       state,
-      resolvedOptions
+      resolvedOptions,
     );
 
     for (const stateTestKey of stateTestKeys) {
@@ -281,7 +274,7 @@ export class TestModel<
   private _getStateTestKeys(
     params: TestParam<TSnapshot, TEvent>,
     state: TSnapshot,
-    resolvedOptions: TestModelOptions<TSnapshot, TEvent, TInput>
+    resolvedOptions: TestModelOptions<TSnapshot, TEvent, TInput>,
   ) {
     const states = params.states || {};
     const stateTestKeys = Object.keys(states).filter((stateKey) => {
@@ -289,8 +282,8 @@ export class TestModel<
     });
 
     // Fallthrough state tests
-    if (!stateTestKeys.length && '*' in states) {
-      stateTestKeys.push('*');
+    if (!stateTestKeys.length && "*" in states) {
+      stateTestKeys.push("*");
     }
 
     return stateTestKeys;
@@ -298,24 +291,24 @@ export class TestModel<
 
   private _getEventExec(
     params: TestParam<TSnapshot, TEvent>,
-    step: Step<TSnapshot, TEvent>
+    step: Step<TSnapshot, TEvent>,
   ) {
     const eventExec =
-      params.events?.[(step.event as any).type as TEvent['type']];
+      params.events?.[(step.event as any).type as TEvent["type"]];
 
     return eventExec;
   }
 
   public async testTransition(
     params: TestParam<TSnapshot, TEvent>,
-    step: Step<TSnapshot, TEvent>
+    step: Step<TSnapshot, TEvent>,
   ): Promise<void> {
     const eventExec = this._getEventExec(params, step);
     await (eventExec as EventExecutor<TSnapshot, TEvent>)?.(step);
   }
 
   private _resolveOptions(
-    options?: Partial<TestModelOptions<TSnapshot, TEvent, TInput>>
+    options?: Partial<TestModelOptions<TSnapshot, TEvent, TInput>>,
   ): TestModelOptions<TSnapshot, TEvent, TInput> {
     return { ...this.defaultTraversalOptions, ...this.options, ...options };
   }
@@ -323,7 +316,7 @@ export class TestModel<
 
 function stateValuesEqual(
   a: StateValue | undefined,
-  b: StateValue | undefined
+  b: StateValue | undefined,
 ): boolean {
   if (a === b) {
     return true;
@@ -333,7 +326,7 @@ function stateValuesEqual(
     return false;
   }
 
-  if (typeof a === 'string' || typeof b === 'string') {
+  if (typeof a === "string" || typeof b === "string") {
     return a === b;
   }
 
@@ -370,7 +363,7 @@ function serializeMachineTransition(
         TODO // TStateSchema
       >
     | undefined,
-  { serializeEvent }: { serializeEvent: (event: AnyEventObject) => string }
+  { serializeEvent }: { serializeEvent: (event: AnyEventObject) => string },
 ): string {
   // TODO: the stateValuesEqual check here is very likely not exactly correct
   // but I'm not sure what the correct check is and what this is trying to do
@@ -379,12 +372,12 @@ function serializeMachineTransition(
     (previousSnapshot &&
       stateValuesEqual(previousSnapshot.value, snapshot.value))
   ) {
-    return '';
+    return "";
   }
 
   const prevStateString = previousSnapshot
     ? ` from ${simpleStringify(previousSnapshot.value)}`
-    : '';
+    : "";
 
   return ` via ${serializeEvent(event)}${prevStateString}`;
 }
@@ -422,12 +415,12 @@ export function createTestModel<TMachine extends AnyStateMachine>(
       EventFromLogic<TMachine>,
       InputFrom<TMachine>
     >
-  >
+  >,
 ): TestModel<SnapshotFrom<TMachine>, EventFromLogic<TMachine>, unknown> {
   validateMachine(machine);
 
   const serializeEvent = (options?.serializeEvent ?? simpleStringify) as (
-    event: AnyEventObject
+    event: AnyEventObject,
   ) => string;
   const serializeTransition =
     options?.serializeTransition ?? serializeMachineTransition;
@@ -445,18 +438,18 @@ export function createTestModel<TMachine extends AnyStateMachine>(
         event,
         prevState,
         {
-          serializeEvent
-        }
+          serializeEvent,
+        },
       )}` as SerializedSnapshot;
     },
     stateMatcher: (state, key) => {
-      return key.startsWith('#')
+      return key.startsWith("#")
         ? (state as any)._nodes.includes(machine.getStateNodeById(key))
         : (state as any).matches(key);
     },
     events: (state) => {
       const events =
-        typeof getEvents === 'function' ? getEvents(state) : getEvents ?? [];
+        typeof getEvents === "function" ? getEvents(state) : getEvents ?? [];
 
       return __unsafe_getAllOwnEventDescriptors(state).flatMap(
         (eventType: string) => {
@@ -465,10 +458,10 @@ export function createTestModel<TMachine extends AnyStateMachine>(
           }
 
           return [{ type: eventType } as any]; // TODO: fix types
-        }
+        },
       );
     },
-    ...otherOptions
+    ...otherOptions,
   });
 
   return testModel;
