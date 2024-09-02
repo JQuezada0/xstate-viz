@@ -108,8 +108,16 @@ export class DirectedGraphEdge {
 export function toDirectedGraph(stateNode: StateNode): DirectedGraphNode {
   const transitions = Array.from(stateNode.transitions.entries())
 
+  console.log("TRANSITIONS FOR!:", {
+    node: stateNode,
+    transitions,
+  })
+
+  
+
   const edges: DirectedGraphEdge[] = flatten(
     transitions.map(([transitionName, transitionDefinition], transitionIndex) => {
+      console.log("GET EDGE FROM TRANSITION!!!", transitionName, transitionDefinition)
       return transitionDefinition.map((t) => {
         const targets = t.target ? t.target : [stateNode];
 
@@ -132,6 +140,32 @@ export function toDirectedGraph(stateNode: StateNode): DirectedGraphNode {
       })
     }).flat(),
   );
+
+  if (stateNode.config.type === "final" && !transitions.length) {
+    edges.push(new DirectedGraphEdge({
+      id: stateNode.id,
+      source: stateNode,
+      target: stateNode,
+      transition: {
+        actions: [],
+        eventType: "",
+        reenter: false,
+        source: stateNode,
+        target: [],
+        toJSON() {
+            return {} as any
+        },
+      },
+      label: {
+        text: stateNode.id,
+        x: 0,
+        y: 0
+      },
+      sections: []
+    }))
+  }
+
+  console.log("EDGES", edges)
 
   const graph = new DirectedGraphNode({
     id: stateNode.id,

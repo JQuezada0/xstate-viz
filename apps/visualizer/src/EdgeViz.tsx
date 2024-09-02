@@ -3,7 +3,8 @@ import React from 'react';
 import { roundPath, LPathParam, pathToD, Point, SvgPath } from './pathUtils';
 import { ArrowMarker } from './ArrowMarker';
 import { DirectedGraphEdge } from './directedGraph';
-import { useSimulation } from './SimulationContext';
+import { SimulationContext } from './SimulationContext';
+import "./EdgeViz.scss"
 
 function translatePoint(point: Point, vector: Point): Point {
   return {
@@ -29,16 +30,16 @@ export const EdgeViz: React.FC<{ edge: DirectedGraphEdge; order: number }> = ({
   edge,
   order,
 }) => {
-  const service = useSimulation();
-  const isActive = useSelector(service, (state) => {
+  const service = SimulationContext.useActorRef(); // useSimulation();
+  const isActive = SimulationContext.useSelector((state) => {
     return state.context.serviceDataMap[
       state.context.currentSessionId!
-    ]?.state.configuration.includes(edge.source);
+    ]?.state?._nodes.includes(edge.source);
   });
 
   let path: SvgPath | undefined;
 
-  if (edge.sections.length) {
+  if (edge?.sections?.length) {
     const section = edge.sections[0];
 
     path = [

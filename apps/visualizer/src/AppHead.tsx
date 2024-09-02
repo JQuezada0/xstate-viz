@@ -43,11 +43,11 @@ export const AppHead = ({ importElk = true, ...props }: AppHeadProps) => {
       )}
 
       <meta property="twitter:card" content="summary_large_image" />
-      <script
+      {/* <script
         async
         data-domain="stately.ai"
         src="https://plausible.io/js/script.tagged-events.js"
-      />
+      /> */}
     </Head>
   );
 };

@@ -1,5 +1,5 @@
 import safeStringify from 'fast-safe-stringify';
-import { createMachine, StateConfig } from 'xstate';
+import { AnyMachineSnapshot, createMachine, StateConfig } from 'xstate';
 import { ParsedReceiverEvent, ReceiverEvent } from './types';
 
 export function getLazy<T>(value: T): T extends () => infer R ? R : T {
@@ -54,12 +54,12 @@ export function parseReceiverEvent(event: ReceiverEvent): ParsedReceiverEvent {
       return {
         ...event,
         machine: createMachine(JSON.parse(event.machine)),
-        state: parseState(event.state)
+        state: parseState(event.state) as AnyMachineSnapshot
       };
     case 'service.state':
       return {
         ...event,
-        state: parseState(event.state)
+        state: parseState(event.state) as AnyMachineSnapshot
       };
     default:
       return event;

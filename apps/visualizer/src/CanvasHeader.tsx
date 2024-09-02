@@ -12,20 +12,24 @@ import {
   Text,
 } from '@chakra-ui/react';
 import React from 'react';
-import { useLoggedInUserData } from './authContext';
-import { LikeButton } from './LikeButton';
+// import { useLoggedInUserData } from './authContext';
+// import { LikeButton } from './LikeButton';
 import { Logo } from './Logo';
-import { registryLinks } from './registryLinks';
-import { ShareButton } from './ShareButton';
-import { useSourceActor } from './sourceMachine';
+// import { registryLinks } from './registryLinks';
+// import { ShareButton } from './ShareButton';
 
 export const CanvasHeader: React.FC = () => {
-  const [sourceState] = useSourceActor();
+  // const [sourceState] = useSourceActor();
 
-  const loggedInUserData = useLoggedInUserData();
-  const registryData = sourceState.context.sourceRegistryData;
-  const userOwnsSource =
-    loggedInUserData?.id === registryData?.project?.owner?.id;
+  // const loggedInUserData = useLoggedInUserData();
+  // const registryData = sourceState.context.sourceRegistryData;
+  // const userOwnsSource =
+  //   loggedInUserData?.id === registryData?.project?.owner?.id;
+
+  const registryData = undefined
+
+  const userOwnsSource = true
+
   return (
     <HStack zIndex={1} justifyContent="space-between" height="3rem">
       <Link
@@ -57,16 +61,16 @@ export const CanvasHeader: React.FC = () => {
             {registryData?.project?.name || 'Unnamed Source'}
           </Text>
           <HStack>
-            <LikeButton />
-            <ShareButton sourceId={registryData.id} />
+            {/* <LikeButton /> */}
+            {/* <ShareButton sourceId={registryData.id} /> */}
             <Menu closeOnSelect>
-              <MenuButton
+              {/* <MenuButton
                 as={IconButton}
                 aria-label="Menu"
                 icon={<HamburgerIcon />}
                 size="sm"
-              />
-              <MenuList>
+              /> */}
+              {/* <MenuList>
                 {userOwnsSource &&
                   sourceState.context.sourceRegistryData?.project?.id && (
                     <MenuItem
@@ -100,7 +104,7 @@ export const CanvasHeader: React.FC = () => {
                     </HStack>
                   </MenuItem>
                 )}
-              </MenuList>
+              </MenuList> */}
             </Menu>
           </HStack>
         </Stack>

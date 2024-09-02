@@ -1,18 +1,31 @@
 import { useSelector } from '@xstate/react';
 import React, { useMemo } from 'react';
-import type { AnyStateNodeDefinition, Guard } from 'xstate';
+import type { AnyStateNodeDefinition, ContextFrom, StateFrom } from 'xstate';
 import { DirectedGraphEdge } from './directedGraph';
 import { EventTypeViz, toDelayString } from './EventTypeViz';
 import { Point } from './pathUtils';
-import { useSimulation } from './SimulationContext';
-import { AnyStateMachine, StateFrom } from './types';
-import { toSCXMLEvent } from 'xstate/lib/utils';
-import { simulationMachine } from './simulationMachine';
+import { useSimulation, SimulationContext } from './SimulationContext';
+// import { toSCXMLEvent } from '@xstate/scxml';
+import { SimMachineEventType, simulationMachine } from './simulationMachine';
 import { ActionViz } from './ActionViz';
 import { DelayViz } from './DelayViz';
+import { UnknownGuard } from 'xstate/guards';
+import "./TransitionViz.scss"
 
-const getGuardType = (guard: Guard<any, any>) => {
-  return guard.name; // v4
+const getGuardType = (guard: UnknownGuard) => {
+  if (typeof guard === "function") {
+    return guard.name
+  }
+
+  if (typeof guard === "string") {
+    return guard
+  }
+
+  if (typeof guard.params === "function") {
+    return guard.params.name ?? guard.type
+  }
+
+  return guard.type
 };
 
 export type DelayedTransitionMetadata =
@@ -22,7 +35,7 @@ export type DelayedTransitionMetadata =
 const getDelayFromEventType = (
   eventType: string,
   delayOptions: AnyStateMachine['options']['delays'],
-  context: AnyStateNodeDefinition['context'],
+  context: ContextFrom<AnyStateNodeDefinition>,
   event: any,
 ): DelayedTransitionMetadata | undefined => {
   try {
@@ -49,7 +62,7 @@ const getDelayFromEventType = (
         finalDelay = delayExpr;
       } else {
         // if configured delay is getter function
-        // @ts-expect-error
+        // @ts-expect-errffor
         finalDelay = delayExpr(context, event);
       }
     }
@@ -66,7 +79,7 @@ const getDelayFromEventType = (
 };
 
 const delayOptionsSelector = (state: StateFrom<typeof simulationMachine>) =>
-  state.context.serviceDataMap[state.context.currentSessionId!]?.machine.options
+  state.context.serviceDataMap[state.context.currentSessionId!]?.machine?.config
     ?.delays;
 
 export const TransitionViz: React.FC<{
@@ -75,12 +88,11 @@ export const TransitionViz: React.FC<{
   index: number;
 }> = ({ edge, index, position }) => {
   const definition = edge.transition;
-  const service = useSimulation();
-  const state = useSelector(
-    service,
+  const service = SimulationContext.useActorRef(); // useSimulation();
+  const state = SimulationContext.useSelector(
     (s) => s.context.serviceDataMap[s.context.currentSessionId!]?.state,
   );
-  const delayOptions = useSelector(service, delayOptionsSelector);
+  const delayOptions = SimulationContext.useSelector(delayOptionsSelector);
   const delay = useMemo(
     () =>
       delayOptions
@@ -98,12 +110,18 @@ export const TransitionViz: React.FC<{
     return null;
   }
 
-  const isDisabled =
-    delay?.delayType === 'DELAYED_INVALID' ||
-    !state.nextEvents.includes(definition.eventType);
-  const isPotential =
-    state.nextEvents.includes(edge.transition.eventType) &&
-    !!state.configuration.find((sn) => sn === edge.source);
+  const isDisabled = false
+    // delay?.delayType === 'DELAYED_INVALID' ||
+    // !state.nextEvents.includes(definition.eventType);
+  const isPotential = false
+    // state.nextEvents.includes(edge.transition.eventType) &&
+    // !!state.configuration.find((sn) => sn === edge.source);
+
+    if (!(typeof definition.actions[0]! !== "function")) {
+      
+      const ac = definition.actions[0]
+
+    }
 
   return (
     <button
@@ -121,26 +139,27 @@ export const TransitionViz: React.FC<{
       disabled={isDisabled}
       onMouseEnter={() => {
         service.send({
-          type: 'EVENT.PREVIEW',
+          type: SimMachineEventType.PreviewEvent,
           eventType: definition.eventType,
         });
       }}
       onMouseLeave={() => {
         service.send({
-          type: 'PREVIEW.CLEAR',
+          type: SimMachineEventType.ClearPreview,
         });
       }}
       onClick={() => {
         // TODO: only if no parameters/schema
-        service.send({
-          type: 'SERVICE.SEND',
-          event: toSCXMLEvent(
-            {
-              type: definition.eventType,
-            },
-            { origin: state._sessionid as string },
-          ),
-        });
+        // BUGBUG: toSCXMLEvent
+        // service.send({
+        //   type: 'SERVICE.SEND',
+        //   event: toSCXMLEvent(
+        //     {
+        //       type: definition.eventType,
+        //     },
+        //     { origin: state._sessionid as string },
+        //   ),
+        // });
       }}
     >
       <div data-viz="transition-label">
@@ -150,9 +169,9 @@ export const TransitionViz: React.FC<{
             <DelayViz active={isPotential} duration={delay.delay} />
           )}
         </span>
-        {definition.cond && (
+        {definition.guard && (
           <span data-viz="transition-guard">
-            {getGuardType(definition.cond)}
+            {getGuardType(definition.guard)}
           </span>
         )}
       </div>

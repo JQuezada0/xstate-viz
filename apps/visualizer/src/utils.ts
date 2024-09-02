@@ -3,57 +3,68 @@ import Cookies from 'js-cookie';
 import { NextRouter } from 'next/router';
 import * as React from 'react';
 import {
-  ActionObject,
-  ActionTypes,
+  AnyActorRef,
+  // ActionTypes,
   AnyEventObject,
-  CancelAction,
-  Interpreter,
-  SendAction,
-  StateNode,
-  TransitionDefinition,
-} from 'xstate';
-import {
   AnyState,
   AnyStateMachine,
+  CancelAction,
+  Interpreter,
+  MachineContext,
+  SendToAction,
+  SnapshotFrom,
+  StateNode,
+  TransitionDefinition,
+  UnknownAction,
+  UnknownActorLogic,
+  UnknownActorRef,
+} from 'xstate';
+import {
   EmbedMode,
   EmbedPanel,
   ParsedEmbed,
 } from './types';
 
-export function isNullEvent(eventName: string) {
-  return eventName === ActionTypes.NullEvent;
+export function isNullEvent(eventName: string): boolean {
+  return false
+  // return eventName === ActionTypes.NullEvent;
 }
 
-export function isInternalEvent(eventName: string) {
-  const allInternalEventsButNullEvent = Object.values(ActionTypes).filter(
-    (prefix) => !isNullEvent(prefix),
-  );
-  return allInternalEventsButNullEvent.some((prefix) =>
-    eventName.startsWith(prefix),
-  );
+export function isInternalEvent(eventName: string): boolean {
+  // const allInternalEventsButNullEvent = Object.values(ActionTypes).filter(
+  //   (prefix) => !isNullEvent(prefix),
+  // );
+
+  // return allInternalEventsButNullEvent.some((prefix) =>
+  //   eventName.startsWith(prefix),
+  // );
+
+  return false
 }
 
 export function createInterpreterContext<
-  TInterpreter extends Interpreter<any, any, any>,
+  TInterpreter extends AnyActorRef,
 >(displayName: string) {
   const [Provider, useContext] =
     createRequiredContext<TInterpreter>(displayName);
 
   const createUseSelector =
-    <Data>(selector: (state: TInterpreter['state']) => Data) =>
+    <Data>(selector: (state: SnapshotFrom<TInterpreter>) => Data) =>
     () => {
-      // eslint-disable-next-line react-hooks/rules-of-hooks
-      return useSelector(useContext(), selector);
+      // BUGBUG eslint-disable-next-line react-hooks/rules-of-hooks
+      return useSelector<TInterpreter, Data>(useContext(), (snapshot) => {
+        return selector(snapshot as SnapshotFrom<TInterpreter>)
+      });
     };
 
   return [Provider, useContext, createUseSelector] as const;
 }
 
-export function createRequiredContext<T>(displayName: string) {
+export function createRequiredContext<T>(displayName: string): [React.Provider<T | null>, () => NonNullable<T>] {
   const context = React.createContext<T | null>(null);
   context.displayName = displayName;
 
-  const useContext = () => {
+  const useContext = (): NonNullable<T> => {
     const ctx = React.useContext(context);
     if (!ctx) {
       throw new Error(
@@ -67,13 +78,13 @@ export function createRequiredContext<T>(displayName: string) {
 }
 
 export interface Edge<
-  TContext,
+  TContext extends MachineContext,
   TEvent extends AnyEventObject,
   TEventType extends TEvent['type'] = string,
 > {
   event: TEventType;
-  source: StateNode<TContext, any, TEvent>;
-  target: StateNode<TContext, any, TEvent>;
+  source: StateNode<TContext, TEvent>;
+  target: StateNode<TContext, TEvent>;
   transition: TransitionDefinition<TContext, TEvent>;
   order: number;
 }
@@ -82,6 +93,8 @@ export function getChildren(stateNode: StateNode): StateNode[] {
   if (!stateNode.states) {
     return [];
   }
+
+  // console.log("GET CHILDREN OF!", stateNode)
 
   const children = Object.keys(stateNode.states).map((key) => {
     return stateNode.states[key];
@@ -95,22 +108,50 @@ export function getChildren(stateNode: StateNode): StateNode[] {
 export function getEdges(stateNode: StateNode): Array<Edge<any, any, any>> {
   const edges: Array<Edge<any, any, any>> = [];
 
-  Object.keys(stateNode.on).forEach((eventType, order) => {
-    const transitions = stateNode.on[eventType];
+  stateNode.transitions.forEach((target) => {
 
-    transitions.forEach((t) => {
-      const targets = t.target && t.target.length > 0 ? t.target : [stateNode];
-      targets.forEach((target) => {
-        edges.push({
-          event: eventType,
+    const targets = target && target.length > 0 ? target : target;
+
+    // console.log("TARGET!??!", target)
+
+    edges.push(...targets.flatMap((target) => {
+      const innerTargets = target.target ?? []
+
+      return innerTargets.map((innerTarget, order) => {
+        const edge:  Edge<any, any, any> = {
+          event: target.eventType,
           source: stateNode,
-          target,
-          transition: t,
+          target: innerTarget,
+          transition: target,
           order,
-        });
-      });
-    });
+        }
+
+        console.log("EDGE!!", edge)
+
+        return edge
+      })
+    }))
+
+    // targets.forEach((target) => {
+    //   edges.push({
+    //     event: target.eventType,
+    //     source: stateNode,
+    //     target: target.target!,
+    //     transition: t,
+    //     order,
+    //   });
+    // });
   });
+
+  // Object.keys(stateNode.on).forEach((eventType, order) => {
+  //   const transitions = stateNode.on[eventType];
+
+   
+  // });
+
+  // if (stateNode) {
+
+  // }
 
   return edges;
 }
@@ -121,18 +162,18 @@ export const isStringifiedFunction = (str: string): boolean =>
 const testPlatform = (re: RegExp): boolean =>
   re.test(globalThis?.navigator?.platform);
 
-export const isMac = () => testPlatform(/^Mac/);
+export const isMac = (): boolean => testPlatform(/^Mac/);
 
 export const isWithPlatformMetaKey = (event: {
   metaKey: boolean;
   ctrlKey: boolean;
-}) => (isMac() ? event.metaKey : event.ctrlKey);
+}): boolean => (isMac() ? event.metaKey : event.ctrlKey);
 
-export const getPlatformMetaKeyLabel = () => (isMac() ? 'CMD' : 'Ctrl');
+export const getPlatformMetaKeyLabel = (): "CMD" | "Ctrl" => (isMac() ? 'CMD' : 'Ctrl');
 
 export const updateQueryParamsWithoutReload = (
   mutator: (queries: URLSearchParams) => void,
-) => {
+): void => {
   const newURL = new URL(window.location.href);
   mutator(newURL.searchParams);
   window.history.pushState({ path: newURL.href }, '', newURL.href);
@@ -149,7 +190,7 @@ export async function callAPI<T>(input: {
   endpoint: string;
   queryParams?: URLSearchParams;
   body?: any;
-}) {
+}): Promise<{ data: T }> {
   const { endpoint, queryParams, body } = input;
   const apiUrl = getApiUrl(endpoint);
   const url = queryParams ? `${apiUrl}?${queryParams}` : apiUrl;
@@ -169,6 +210,7 @@ export function willChange(
   state: AnyState,
   event: AnyEventObject,
 ): boolean {
+  // machine.
   return !!machine.transition(state, event).changed;
 }
 
@@ -177,25 +219,27 @@ export function uniq<T>(arr: T[]): T[] {
 }
 
 export function isDelayedTransitionAction(
-  action: ActionObject<any, any>,
+  action: UnknownAction,
 ): boolean {
-  switch (action.type) {
-    case ActionTypes.Send: {
-      const sendAction = action as SendAction<
-        unknown,
-        AnyEventObject,
-        AnyEventObject
-      >;
-      return (
-        typeof sendAction.event === 'object' &&
-        sendAction.event.type.startsWith('xstate.after')
-      );
-    }
-    case ActionTypes.Cancel:
-      return `${(action as CancelAction).sendId}`.startsWith('xstate.after');
-    default:
-      return false;
-  }
+
+  return false
+  // switch (action.type) {
+  //   case ActionTypes.Send: {
+  //     const sendAction = action as SendToAction<
+  //       unknown,
+  //       AnyEventObject,
+  //       AnyEventObject
+  //     >;
+  //     return (
+  //       typeof sendAction.event === 'object' &&
+  //       sendAction.event.type.startsWith('xstate.after')
+  //     );
+  //   }
+  //   case ActionTypes.Cancel:
+  //     return `${(action as CancelAction).sendId}`.startsWith('xstate.after');
+  //   default:
+  //     return false;
+  // }
 }
 
 /**
@@ -265,7 +309,7 @@ export const parseEmbedQuery = (query?: NextRouter['query']): ParsedEmbed => {
   return parsedEmbed;
 };
 
-export function calculatePanelIndexByPanelName(panelName: EmbedPanel) {
+export function calculatePanelIndexByPanelName(panelName: EmbedPanel): number {
   const tabs = Object.values(EmbedPanel);
   const foundPanelIndex = tabs.findIndex((p) => p === panelName);
   return foundPanelIndex >= 0 ? foundPanelIndex : 0;
@@ -427,7 +471,7 @@ export const isAcceptingSpaceNatively = (
   isTextInputLikeElement(el) ||
   getRoles(el).includes('button');
 
-export const isSignedIn = () => {
+export const isSignedIn = (): boolean => {
   const match = process.env.NEXT_PUBLIC_SUPABASE_API_URL.match(
     /https:\/\/(.*)\.supabase/,
   );
@@ -452,14 +496,15 @@ export const isErrorWithMessage = (
   'message' in error &&
   typeof (error as Record<string, unknown>).message === 'string';
 
-export function once<T extends (...args: any[]) => any>(fn: T) {
+export function once<T extends (...args: any[]) => any>(fn: T): T {
   let called = false;
   let result: ReturnType<T>;
-  return (...args: Parameters<T>) => {
+  return ((...args: Parameters<T>): ReturnType<T> => {
     if (!called) {
       result = fn(...args);
       called = true;
     }
     return result;
-  };
+  }) as T;
 }
+

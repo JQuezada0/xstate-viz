@@ -18,7 +18,11 @@ declare global {
   export const ELK: typeof import('elkjs/lib/main').default;
 }
 
+const ELK = (await import("elkjs")).default
+
 let elk: ELK;
+
+console.log("Imported ELK IS?!", typeof ELK, ELK)
 
 if (typeof ELK !== 'undefined') {
   elk = new ELK();
@@ -32,10 +36,17 @@ type RelativeNodeEdgeMap = [
 export function getAllEdges(digraph: DirectedGraphNode): DirectedGraphEdge[] {
   const edges: DirectedGraphEdge[] = [];
   const getEdgesRecursive = (dnode: DirectedGraphNode) => {
+    // console.log("GET EDGES RECURSIVE FOR!", {
+    //   node: dnode,
+    //   edges: dnode.edges,
+    // })
     edges.push(...dnode.edges);
-
+    // dnode.edges.forEach((edge) => {
+    //   // edge.
+    // })
     dnode.children.forEach(getEdgesRecursive);
   };
+
   getEdgesRecursive(digraph);
 
   return edges;
@@ -74,7 +85,7 @@ function getContainingNode(edge: DirectedGraphEdge): StateNode | undefined {
     marker = marker.parent;
   }
 
-  return sourceNode.machine; // root
+  return sourceNode
 }
 
 function getRelativeNodeEdgeMap(
@@ -106,6 +117,11 @@ function getElkEdge(
   const edgeRect = rectMap.get(edge.id)!;
   const targetPortId = getPortId(edge);
   const isSelfEdge = edge.source === edge.target;
+  // console.log("CHECK IF INITIAL EDGE!", {
+  //   sourceKey: edge.source.key,
+  //   initial: edge.source.parent?.initial,
+  // })
+
   const isInitialEdge = edge.source.parent?.initial === edge.source.key;
 
   const sources = [edge.source.id];
@@ -164,6 +180,7 @@ const getRectMap = (machineId: string): Promise<DOMRectMap> => {
       }
 
       document.querySelectorAll('[data-rect-id]').forEach((el) => {
+        // console.log("AUERY SELECTED RECT!", el)
         const rectId = (el as HTMLElement).dataset.rectId!;
         const rect = el.getBoundingClientRect();
         rectMap.set(rectId, rect);
@@ -199,6 +216,7 @@ function getElkChild(
   runContext: ElkRunContext,
 ): StateElkNode {
   const { relativeNodeEdgeMap, backLinkMap, rectMap } = runContext;
+  // console.log("GET NODE RECT!", node.id, rectMap)
   const nodeRect = rectMap.get(node.id)!;
   const contentRect = rectMap.get(`${node.id}:content`)!;
 
@@ -268,6 +286,7 @@ function getElkChild(
     },
   };
 }
+
 function getElkChildren(
   node: DirectedGraphNode,
   runContext: ElkRunContext,
@@ -329,7 +348,9 @@ function elkJSON(elkNode: ElkNode): any {
 export async function getElkGraph(
   rootDigraphNode: DirectedGraphNode,
 ): Promise<ElkNode> {
+  // console.log("GET ROOT NODE RECT MAP!", rootDigraphNode.id)
   const rectMap = await getRectMap(rootDigraphNode.id);
+  // console.log("GOT ROOT NODE RECT MAP!", rectMap)
   const relativeNodeEdgeMap = getRelativeNodeEdgeMap(rootDigraphNode);
   const backLinkMap = getBackLinkMap(rootDigraphNode);
   const rootEdges = relativeNodeEdgeMap[0].get(undefined) || [];
@@ -382,7 +403,7 @@ export async function getElkGraph(
       containingNode && stateNodeToElkNodeMap.get(containingNode)!;
 
     const translatedSections: ElkEdgeSection[] = elkContainingNode
-      ? edge.sections.map((section) => {
+      ? (edge.sections ?? []).map((section) => {
           return {
             ...section,
             startPoint: {
@@ -402,7 +423,7 @@ export async function getElkGraph(
               }) ?? [],
           };
         })
-      : edge.sections;
+      : edge.sections ?? [];
 
     edge.edge.sections = translatedSections;
     edge.edge.label.x =

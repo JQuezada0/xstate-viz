@@ -1,5 +1,5 @@
 import { createStandaloneToast, UseToastOptions } from '@chakra-ui/react';
-import { createModel } from 'xstate/lib/model';
+// import { createModel } from 'xstate/lib/model';
 
 const toast = createStandaloneToast();
 
@@ -19,6 +19,7 @@ export const notifModel = createModel(
     },
   },
 );
+
 export const notifMachine = notifModel.createMachine({
   initial: 'running',
   context: {},

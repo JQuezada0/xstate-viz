@@ -3,6 +3,7 @@
   "version": "2.0.0",
   "description": "XState graph utilities",
   "private": true,
+  "type": "module",
   "keywords": [
     "state",
     "machine",
@@ -17,15 +18,7 @@
   "main": "dist/xstate-graph.cjs.js",
   "module": "dist/xstate-graph.esm.js",
   "exports": {
-    ".": {
-      "types": {
-        "import": "./dist/xstate-graph.cjs.mjs",
-        "default": "./dist/xstate-graph.cjs.js"
-      },
-      "module": "./dist/xstate-graph.esm.js",
-      "import": "./dist/xstate-graph.cjs.mjs",
-      "default": "./dist/xstate-graph.cjs.js"
-    },
+    ".": "./src/index",
     "./package.json": "./package.json"
   },
   "sideEffects": false,

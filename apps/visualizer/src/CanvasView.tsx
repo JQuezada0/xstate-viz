@@ -32,7 +32,6 @@ import { CanvasHeader } from './CanvasHeader';
 import { Overlay } from './Overlay';
 import { useEmbed } from './embedContext';
 import { CompressIcon, HandIcon } from './Icons';
-import { useSourceActor } from './sourceMachine';
 import { WelcomeArea } from './WelcomeArea';
 
 export const CanvasView: React.FC = () => {
@@ -42,7 +41,7 @@ export const CanvasView: React.FC = () => {
   const embed = useEmbed();
   const simService = useSimulation();
   const canvasService = useCanvas();
-  const [sourceState] = useSourceActor();
+  // const [sourceState] = useSourceActor();
   const machine = useSelector(simService, (state) => {
     return state.context.currentSessionId
       ? state.context.serviceDataMap[state.context.currentSessionId!]?.machine
@@ -69,7 +68,7 @@ export const CanvasView: React.FC = () => {
 
   const simulationMode = useSimulationMode();
 
-  const canShowWelcomeMessage = sourceState.hasTag('canShowWelcomeMessage');
+  // const canShowWelcomeMessage = sourceState.hasTag('canShowWelcomeMessage');
 
   const showControls = useMemo(
     () => !embed?.isEmbedded || embed.controls,
@@ -130,7 +129,8 @@ export const CanvasView: React.FC = () => {
             </Box>
           </Overlay>
         )}
-        {isEmpty && canShowWelcomeMessage && <WelcomeArea />}
+        {/* {isEmpty && canShowWelcomeMessage && <WelcomeArea />} */}
+        {isEmpty && <WelcomeArea />}
       </CanvasContainer>
 
       {showControls && (

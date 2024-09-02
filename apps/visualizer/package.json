@@ -3,13 +3,16 @@
     "version": "0.0.1",
     "private": true,
     "license": "MIT",
+    "type": "module",
     "dependencies": {
         "@xstate/graph": "workspace:*",
         "@xstate/react": "workspace:*",
-        "@xstate/inspect": "workspace:*"
+        "@xstate/inspect": "workspace:*",
+        "@xstate/scxml": "workspace:*"
     },
     "scripts": {
-        "check": "tsc"
+        "check": "tsc",
+        "dev": "vite dev"
     },
     "eslintConfig": {
       "extends": [

@@ -1,18 +1,20 @@
 import { useEffect, useRef, useState } from 'react';
 import {
-  ActionObject,
-  ActionTypes,
+  UnknownAction,
+  // ActionTypes,
   AssignAction,
   CancelAction,
-  ChooseAction,
+  // ChooseAction,
   EventObject,
   LogAction,
   RaiseAction,
-  SendActionObject,
+  // SendActionObject,
   SpecialTargets,
   StopAction,
+  Action,
 } from 'xstate';
 import { isDelayedTransitionAction, isStringifiedFunction } from './utils';
+import "./ActionViz.scss"
 
 type AnyFunction = (...args: any[]) => any;
 
@@ -25,13 +27,19 @@ type PotentiallyStructurallyCloned<T> = {
 
 // at the moment a lot of invalid values can be passed through `createMachine` and reach lines like here
 // so we need to be defensive about this before we implement some kind of a validation so we could raise such problems early and discard the invalid values
-export function getActionLabel(action: ActionObject<any, any>): string | null {
+export function getActionLabel(action: UnknownAction): string | null {
   if (!action) {
     return null;
   }
-  if (typeof action.exec === 'function') {
-    return isStringifiedFunction(action.type) ? 'anonymous' : action.type;
+  if (typeof action === 'function') {
+    return action.name ?? 'anonymous'
+    // return isStringifiedFunction(action) ? 'anonymous' : action.name;
   }
+
+  if (typeof action === "string") {
+    return action
+  }
+
   if (!action.type) {
     return null;
   }
@@ -41,7 +49,7 @@ export function getActionLabel(action: ActionObject<any, any>): string | null {
   return action.type;
 }
 
-export const ActionType: React.FC<{ title?: string }> = ({
+export const ActionType: React.FC<{ title?: string; children?: React.ReactNode | React.ReactNode[] }> = ({
   children,
   title,
 }) => {
@@ -176,9 +184,9 @@ export const ChooseActionLabel: React.FC<{
 };
 
 export const CustomActionLabel: React.FC<{
-  action: PotentiallyStructurallyCloned<ActionObject<any, any>>;
+  action: PotentiallyStructurallyCloned<UnknownAction>;
 }> = ({ action }) => {
-  const label = getActionLabel(action);
+  const label = getActionLabel(action as UnknownAction);
 
   if (label === null) {
     return null;
@@ -192,7 +200,7 @@ export const CustomActionLabel: React.FC<{
 };
 
 export const ActionViz: React.FC<{
-  action: ActionObject<any, any>;
+  action: UnknownAction;
   kind: 'entry' | 'exit' | 'do';
 }> = ({ action, kind }) => {
   if (isDelayedTransitionAction(action)) {
@@ -200,31 +208,33 @@ export const ActionViz: React.FC<{
     return null;
   }
 
-  const actionType = {
-    [ActionTypes.Assign]: (
-      <AssignActionLabel action={action as AssignAction<any, any>} />
-    ),
-    [ActionTypes.Raise]: (
-      <RaiseActionLabel action={action as RaiseAction<any>} />
-    ),
-    [ActionTypes.Send]: (
-      <SendActionLabel action={action as SendActionObject<any, any>} />
-    ),
-    [ActionTypes.Log]: (
-      <LogActionLabel action={action as LogAction<any, any>} />
-    ),
-    [ActionTypes.Cancel]: <CancelActionLabel action={action as CancelAction} />,
-    [ActionTypes.Stop]: (
-      <StopActionLabel action={action as StopAction<any, any>} />
-    ),
-    [ActionTypes.Choose]: (
-      <ChooseActionLabel action={action as ChooseAction<any, any>} />
-    ),
-  }[action.type] ?? <CustomActionLabel action={action} />;
+  // return (<CustomActionLabel action={action} />)
+
+  // const actionType = {
+  //   [ActionTypes.Assign]: (
+  //     <AssignActionLabel action={action as AssignAction<any, any>} />
+  //   ),
+  //   [ActionTypes.Raise]: (
+  //     <RaiseActionLabel action={action as RaiseAction<any>} />
+  //   ),
+  //   [ActionTypes.Send]: (
+  //     <SendActionLabel action={action as SendActionObject<any, any>} />
+  //   ),
+  //   [ActionTypes.Log]: (
+  //     <LogActionLabel action={action as LogAction<any, any>} />
+  //   ),
+  //   [ActionTypes.Cancel]: <CancelActionLabel action={action as CancelAction} />,
+  //   [ActionTypes.Stop]: (
+  //     <StopActionLabel action={action as StopAction<any, any>} />
+  //   ),
+  //   [ActionTypes.Choose]: (
+  //     <ChooseActionLabel action={action as ChooseAction<any, any>} />
+  //   ),
+  // }[action.type] ?? <CustomActionLabel action={action} />;
 
   return (
     <div data-viz="action" data-viz-action={kind}>
-      {actionType}
+      <CustomActionLabel action={action} />
     </div>
   );
 };

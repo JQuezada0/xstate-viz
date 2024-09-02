@@ -1,6 +1,7 @@
 import React from 'react';
 import type { InvokeDefinition } from 'xstate/lib/types';
 import type { DelayedTransitionMetadata } from './TransitionViz';
+import "./EventTypeViz.scss"
 
 export function toDelayString(delay: string | number): string {
   if (typeof delay === 'number' || !isNaN(+delay)) {

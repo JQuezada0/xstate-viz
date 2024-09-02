@@ -1,9 +1,10 @@
 import React, { CSSProperties, useEffect, useRef } from 'react';
-import { canvasModel, ZoomFactor } from './canvasMachine';
-import { useCanvas } from './CanvasContext';
+import { ZoomFactor } from './canvasMachine';
+// import { useCanvas } from './CanvasContext';
+import { CanvasContext } from './useInterpretCanvas';
+import { canvasMachine } from "./canvasMachine"
 import { useMachine } from '@xstate/react';
-import { actions } from 'xstate';
-import { createModel } from 'xstate/lib/model';
+import { AnyState, setup, assign, raise, fromCallback, ActorRef, EventObject, ContextFrom, Actor } from 'xstate';
 import { Point } from './pathUtils';
 import {
   isAcceptingArrowKey,
@@ -18,45 +19,134 @@ import {
   DragSession,
   PointDelta,
 } from './dragSessionTracker';
-import { AnyState } from './types';
 
-const dragModel = createModel(
+type DragContext = {
+  ref: React.MutableRefObject<HTMLElement> | null
+}
+
+const dragModel = setup(
   {
-    ref: null as React.MutableRefObject<HTMLElement> | null,
-  },
-  {
-    events: {
-      LOCK: () => ({}),
-      RELEASE: () => ({}),
-      ENABLE_PANNING: (sessionSeed: DragSession | null = null) => ({
-        sessionSeed,
-      }),
-      DISABLE_PANNING: () => ({}),
-      ENABLE_PAN_MODE: () => ({}),
-      DISABLE_PAN_MODE: () => ({}),
-      DRAG_SESSION_STARTED: ({ point }: { point: Point }) => ({
-        point,
-      }),
-      DRAG_SESSION_STOPPED: () => ({}),
-      POINTER_MOVED_BY: ({ delta }: { delta: PointDelta }) => ({
-        delta,
-      }),
-      WHEEL_PRESSED: (data: DragSession) => ({ data }),
-      WHEEL_RELEASED: () => ({}),
+    types: {
+      input: {} as DragContext,
+      context: {} as DragContext,
+      events: {} as 
+        (| { type: "LOCK" }
+        | { type: "RELEASE" }
+        | { type: "ENABLE_PANNING", sessionSeed: DragSession | null }
+        | { type: "DISABLE_PANNING" }
+        | { type: "ENABLE_PAN_MODE" }
+        | { type: "DISABLE_PAN_MODE" }
+        | { type: "DRAG_SESSION_STARTED", point: Point }
+        | { type: "DRAG_SESSION_STOPPED" }
+        | { type: "POINTER_MOVED_BY", delta: PointDelta }
+        | { type: "WHEEL_PRESSED", data: DragSession }
+        | { type: "WHEEL_RELEASED" })
     },
-  },
+    actions: {
+      disableTextSelection: assign(({ context: ctx }) => {
+        const node = ctx.ref!.current!;
+        node.style.userSelect = 'none';
+
+        return ctx
+      }),
+      enableTextSelection: assign(({ context: ctx }) => {
+        const node = ctx.ref!.current!;
+        node.style.userSelect = 'unset';
+
+        return ctx
+      }),
+      sendPanChange: ({ event }) => {
+        // if (event.type === "POINTER_MOVED_BY") {
+        //   canvasModel.send({
+        //     type: "PAN",
+        //     // we need to translate a pointer move to the viewbox move
+        //     // and that is going into the opposite direction than the pointer
+        //     dx: -event.delta.x,
+        //     dy: -event.delta.y,
+        //   })
+        // }
+      },
+    },
+    actors: {
+      wheelPressListener: fromCallback<EventObject, { context: DragContext }>(({ sendBack, input }) => {
+        const { context: ctx } = input
+        const node = ctx.ref!.current!;
+        const listener = (ev: PointerEvent) => {
+          if (ev.button === 1) {
+            sendBack(
+              {
+                type: "WHEEL_PRESSED",
+                data: {
+                  pointerId: ev.pointerId,
+                  point: {
+                    x: ev.pageX,
+                    y: ev.pageY,
+                  },
+                }
+              }
+            );
+          }
+        };
+        node.addEventListener('pointerdown', listener);
+        return () => node.removeEventListener('pointerdown', listener);
+      }),
+      invokeDetectLock: fromCallback(({ sendBack }) => {
+        function keydownListener(e: KeyboardEvent) {
+          const target = e.target as HTMLElement;
+
+          if (e.code === 'Space' && !isAcceptingSpaceNatively(target)) {
+            e.preventDefault();
+            sendBack({ type: 'LOCK' });
+          }
+        }
+
+        window.addEventListener('keydown', keydownListener);
+        return () => {
+          window.removeEventListener('keydown', keydownListener);
+        };
+      }),
+      invokeDetectRelease: fromCallback(({ sendBack }) => {
+        // TODO: we should release in more scenarios
+        // e.g.:
+        // - when the window blurs (without this we might get stuck in the locked state without Space actually being held down)
+        // - when unrelated keyboard keys get pressed (without this other actions might be executed while dragging which often might not be desired)
+        function keyupListener(e: KeyboardEvent) {
+          if (e.code === 'Space') {
+            e.preventDefault();
+            sendBack({ type: 'RELEASE' });
+          }
+        }
+
+        window.addEventListener('keyup', keyupListener);
+        return () => {
+          window.removeEventListener('keyup', keyupListener);
+        };
+      }),
+    }
+  }
 );
 
 const dragMachine = dragModel.createMachine(
   {
+    context: ({ input }) => ({ ref: input.ref }),
     preserveActionOrder: true,
     initial: 'checking_if_disabled',
+    actions: {
+      disableTextSelection: assign(({ context: ctx }) => {
+        const node = ctx.ref!.current!;
+        node.style.userSelect = 'none';
+      }),
+      enableTextSelection: assign(({ context: ctx }) => {
+        const node = ctx.ref!.current!;
+        node.style.userSelect = 'unset';
+      }),
+    },
     states: {
       checking_if_disabled: {
         always: [
           {
             target: 'permanently_disabled',
-            cond: 'isPanDisabled',
+            guard: 'isPanDisabled',
           },
           'enabled',
         ],
@@ -78,6 +168,7 @@ const dragMachine = dragModel.createMachine(
                       },
                       {
                         src: 'wheelPressListener',
+                        input: ({ context }) => ({ context }),
                       },
                     ],
                     on: {
@@ -86,17 +177,26 @@ const dragMachine = dragModel.createMachine(
                     },
                   },
                   locked: {
-                    entry: actions.raise(dragModel.events.ENABLE_PANNING()),
-                    exit: actions.raise(dragModel.events.DISABLE_PANNING()),
+                    entry: raise({
+                      type: "ENABLE_PANNING",
+                      sessionSeed: null,
+                    }),
+                    exit: raise({
+                      type: "DISABLE_PANNING",
+                    }),
                     on: { RELEASE: 'released' },
                     invoke: {
                       src: 'invokeDetectRelease',
                     },
                   },
                   wheelPressed: {
-                    entry: actions.raise(((_ctx: any, ev: any) =>
-                      dragModel.events.ENABLE_PANNING(ev.data)) as any),
-                    exit: actions.raise(dragModel.events.DISABLE_PANNING()),
+                    entry: raise((({ context: ctx, event: ev }) => ({
+                      type: "ENABLE_PANNING",
+                      sessionSeed: ev.sessionSeed
+                    }))),
+                    exit: raise({
+                      type: "DISABLE_PANNING",
+                    }),
                     on: {
                       DRAG_SESSION_STOPPED: 'released',
                     },
@@ -107,8 +207,13 @@ const dragMachine = dragModel.createMachine(
                 },
               },
               pan: {
-                entry: actions.raise(dragModel.events.ENABLE_PANNING()),
-                exit: actions.raise(dragModel.events.DISABLE_PANNING()),
+                entry: raise({
+                  type: "ENABLE_PANNING",
+                  sessionSeed: null,
+                }),
+                exit: raise({
+                  type: "DISABLE_PANNING",
+                }),
                 on: {
                   DISABLE_PAN_MODE: 'lockable',
                 },
@@ -128,9 +233,9 @@ const dragMachine = dragModel.createMachine(
                 exit: 'enableTextSelection',
                 invoke: {
                   id: 'dragSessionTracker',
-                  src: (ctx, ev) =>
+                  src: ({ context: ctx, event: ev }) =>
                     dragSessionTracker.withContext({
-                      ...dragSessionModel.initialContext,
+                      // ...dragSessionModel.initialContext,
                       ref: ctx.ref,
                       session:
                         // this is just defensive programming
@@ -182,7 +287,9 @@ const dragMachine = dragModel.createMachine(
                           cursor: 'grabbing',
                         },
                         on: {
-                          POINTER_MOVED_BY: { actions: 'sendPanChange' },
+                          POINTER_MOVED_BY: { 
+                            actions: 'sendPanChange',
+                          },
                         },
                       },
                       done: {
@@ -199,111 +306,55 @@ const dragMachine = dragModel.createMachine(
       },
     },
   },
-  {
-    actions: {
-      disableTextSelection: (ctx) => {
-        const node = ctx.ref!.current!;
-        node.style.userSelect = 'none';
-      },
-      enableTextSelection: (ctx) => {
-        const node = ctx.ref!.current!;
-        node.style.userSelect = 'unset';
-      },
-    },
-    services: {
-      wheelPressListener: (ctx) => (sendBack) => {
-        const node = ctx.ref!.current!;
-        const listener = (ev: PointerEvent) => {
-          if (ev.button === 1) {
-            sendBack(
-              dragModel.events.WHEEL_PRESSED({
-                pointerId: ev.pointerId,
-                point: {
-                  x: ev.pageX,
-                  y: ev.pageY,
-                },
-              }),
-            );
-          }
-        };
-        node.addEventListener('pointerdown', listener);
-        return () => node.removeEventListener('pointerdown', listener);
-      },
-      invokeDetectLock: () => (sendBack) => {
-        function keydownListener(e: KeyboardEvent) {
-          const target = e.target as HTMLElement;
-
-          if (e.code === 'Space' && !isAcceptingSpaceNatively(target)) {
-            e.preventDefault();
-            sendBack('LOCK');
-          }
-        }
-
-        window.addEventListener('keydown', keydownListener);
-        return () => {
-          window.removeEventListener('keydown', keydownListener);
-        };
-      },
-      invokeDetectRelease: () => (sendBack) => {
-        // TODO: we should release in more scenarios
-        // e.g.:
-        // - when the window blurs (without this we might get stuck in the locked state without Space actually being held down)
-        // - when unrelated keyboard keys get pressed (without this other actions might be executed while dragging which often might not be desired)
-        function keyupListener(e: KeyboardEvent) {
-          if (e.code === 'Space') {
-            e.preventDefault();
-            sendBack('RELEASE');
-          }
-        }
-
-        window.addEventListener('keyup', keyupListener);
-        return () => {
-          window.removeEventListener('keyup', keyupListener);
-        };
-      },
-    },
-  },
 );
 
-const getCursorByState = (state: AnyState) =>
-  (
-    Object.values(state.meta).find((m) =>
+const getCursorByState = (state: AnyState) => {
+  const meta = state.getMeta()
+  return (
+    Object.values(meta).find((m) =>
       Boolean((m as { cursor?: CSSProperties['cursor'] }).cursor),
     ) as { cursor?: CSSProperties['cursor'] }
   )?.cursor;
+}
 
-export const CanvasContainer: React.FC<{ panModeEnabled: boolean }> = ({
+export const CanvasContainer: React.FC<{ panModeEnabled: boolean; children: React.ReactNode; canvasModel: Actor<typeof canvasMachine> }> = ({
   children,
   panModeEnabled,
+  canvasModel,
 }) => {
-  const canvasService = useCanvas();
+  const canvasService = CanvasContext.useActorRef();
   const embed = useEmbed();
   const canvasRef = useRef<HTMLDivElement>(null!);
-  const [state, send] = useMachine(dragMachine, {
+
+  const [state, send] = useMachine(dragMachine.provide({
     actions: {
-      sendPanChange: actions.send(
-        (_, ev: any) => {
-          // we need to translate a pointer move to the viewbox move
-          // and that is going into the opposite direction than the pointer
-          return canvasModel.events.PAN(-ev.delta.x, -ev.delta.y);
-        },
-        { to: canvasService as any },
-      ),
+      sendPanChange: ({ event }) => {
+        if (event.type === "POINTER_MOVED_BY") {
+          canvasModel.send({
+            type: "PAN",
+            // we need to translate a pointer move to the viewbox move
+            // and that is going into the opposite direction than the pointer
+            dx: -event.delta.x,
+            dy: -event.delta.y,
+          })
+        }
+      },
     },
     guards: {
       isPanDisabled: () => !!embed?.isEmbedded && !embed.pan,
     },
-    context: {
-      ...dragModel.initialContext,
+  }), {
+    input: {
+      // ...dragModel.initialContext,
       ref: canvasRef,
-    },
+    }
   });
 
   React.useEffect(() => {
     if (panModeEnabled) {
-      send(dragModel.events.ENABLE_PAN_MODE());
+      send({ type: "ENABLE_PAN_MODE" });
     } else {
-      send(dragModel.events.DISABLE_PAN_MODE());
+      send({ type: "DISABLE_PAN_MODE" });
     }
   }, [panModeEnabled]);
 
@@ -383,7 +434,9 @@ export const CanvasContainer: React.FC<{ panModeEnabled: boolean }> = ({
             return;
           }
           e.preventDefault();
-          canvasService.send('ZOOM.IN');
+          canvasService.send({
+            type: "ZOOM.IN"
+          });
           return;
         // this corresponds to the -/_ key, we expect it to be pressed without a Shift
         // it apparently also corresponds to the minus sign on the numpad, even though it inputs the actual minus sign (char code 8722)
@@ -396,7 +449,10 @@ export const CanvasContainer: React.FC<{ panModeEnabled: boolean }> = ({
             return;
           }
           e.preventDefault();
-          canvasService.send('ZOOM.OUT');
+
+          canvasService.send({
+            type: "ZOOM.OUT",
+          });
           return;
         // can come from numpad
         case '1':
@@ -406,7 +462,9 @@ export const CanvasContainer: React.FC<{ panModeEnabled: boolean }> = ({
             return;
           }
           e.preventDefault();
-          canvasService.send('FIT_TO_CONTENT');
+          canvasService.send({
+            type: "FIT_TO_CONTENT",
+          });
           return;
       }
     }

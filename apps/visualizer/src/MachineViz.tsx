@@ -9,6 +9,9 @@ export const MachineViz: React.FC<{ digraph: DirectedGraphNode }> = ({
 }) => {
   const allEdges = useMemo(() => getAllEdges(digraph), [digraph]);
 
+  console.log("FULL GRAPH!", digraph)
+  console.log("ALL EDGES!", allEdges)
+
   return (
     <div style={{ opacity: 0.001 }} data-viz="machine" data-viz-id={digraph.id}>
       <StateNodeViz stateNode={digraph.data} node={digraph} />

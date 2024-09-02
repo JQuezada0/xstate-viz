@@ -1,14 +1,16 @@
 import { DirectedGraphNode } from './directedGraph';
-import { useMachine, useSelector } from '@xstate/react';
+import { useMachine } from '@xstate/react';
 import { useEffect, useMemo, memo } from 'react';
 import { Edges } from './Edges';
 import { StateNodeViz } from './StateNodeViz';
 import { TransitionViz } from './TransitionViz';
-import { createElkMachine } from './elkMachine';
+import { elkMachine } from './elkMachine';
 import { MachineViz } from './MachineViz';
-import { useCanvas } from './CanvasContext';
-import { useSimulation } from './SimulationContext';
+// import { useCanvas } from './CanvasContext';
+import { SimulationContext } from './SimulationContext';
 import { getAllEdges, StateElkNode } from './graphUtils';
+import { CanvasContext } from './useInterpretCanvas';
+import { createActor } from 'xstate';
 
 const GraphNode: React.FC<{ elkNode: StateElkNode }> = ({ elkNode }) => {
   return <StateNodeViz stateNode={elkNode.node.data} node={elkNode.node} />;
@@ -22,24 +24,37 @@ const MemoizedMachineViz = memo(MachineViz);
 export const Graph: React.FC<{ digraph: DirectedGraphNode }> = ({
   digraph,
 }) => {
-  const sim = useSimulation();
-  const [state, send] = useMachine(() => createElkMachine(digraph), {
-    actions: {
-      notifyLayoutPending: () => {
-        sim.send('LAYOUT.PENDING');
-      },
-      notifyLayoutReady: () => {
-        sim.send('LAYOUT.READY');
-      },
-    },
-  });
-
-  const canvasService = useCanvas();
-  const { viewbox, zoom } = useSelector(canvasService, (s) => s.context);
+  // console.log("DIGRAPH!!", digraph)
+  const sim = SimulationContext.useActorRef() // useSimulation();
+  const [state, send, actor] = useMachine(elkMachine, {
+    input: {
+      digraph,
+      sim,
+    }
+  })
 
   useEffect(() => {
-    send({ type: 'GRAPH_UPDATED', digraph });
-  }, [digraph, send]);
+    sim.start()
+    // elkMachine.start()
+  }, [])
+
+  
+
+  // const state = elkMachine.getSnapshot()
+  // const [state, send] = useActor(elkMachine);
+
+  // const canvasService = useCanvas();
+  const canvasService = CanvasContext.useActorRef();
+  const { viewbox, zoom } = CanvasContext.useSelector((s) => s.context);
+
+  useEffect(() => {
+    // console.log("SEND GRAPH UPDATED!")
+    actor.send({ type: 'GRAPH_UPDATED', digraph });
+  }, [digraph]);
+
+  // state.context.
+
+  console.log("STATE!", state)
 
   useEffect(() => {
     // Let canvas service know that the elk graph updated for zoom-to-fit, centering, etc.
@@ -47,11 +62,16 @@ export const Graph: React.FC<{ digraph: DirectedGraphNode }> = ({
       type: 'elkGraph.UPDATE',
       elkGraph: state.context.elkGraph!,
     });
-  }, [state.context.elkGraph]);
+  }, [state?.context?.elkGraph]);
 
   const allEdges = useMemo(() => getAllEdges(digraph), [digraph]);
 
-  if (state.matches('success')) {
+  console.log("STATE!!!", state, {
+    isSuccess: state.matches("success")
+  })
+
+  if (state.matches("success")) {
+    console.log("GRAPH IS IN SUCCESS!")
     return (
       <div
         data-testid="canvas-graph"
@@ -65,7 +85,7 @@ export const Graph: React.FC<{ digraph: DirectedGraphNode }> = ({
         <MemoizedGraphNode
           elkNode={
             // Get the machine node, not the root node
-            state.context.elkGraph!.children![0]!
+            state.context.elkGraph!
           }
         />
         {allEdges.map((edge, i) => {

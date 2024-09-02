@@ -6,7 +6,8 @@ import type { StateNode } from 'xstate';
 import { ActionViz } from './ActionViz';
 import { DirectedGraphNode } from './directedGraph';
 import { InvokeViz } from './EventTypeViz';
-import { useSimulation } from './SimulationContext';
+import { useSimulation, SimulationContext } from './SimulationContext';
+import "./StateNodeViz.scss"
 
 interface BaseStateNodeDef {
   key: string;
@@ -57,8 +58,11 @@ export const StateNodeViz: React.FC<{
   node: DirectedGraphNode;
   stateNode: StateNode;
 }> = ({ stateNode, node }) => {
-  const service = useSimulation();
-  const [state] = useActor(service);
+  const service = SimulationContext.useActorRef(); // useSimulation();
+  service.start()
+  // const [state] = useActor(service);
+
+  const state = service.getSnapshot()
 
   const serviceData =
     state.context.serviceDataMap[state.context.currentSessionId!];
@@ -79,27 +83,32 @@ export const StateNodeViz: React.FC<{
   }, [state, simState, simMachine]);
 
   if (!simState) {
+    console.log("NO SIM STATE!")
     return null;
   }
 
+  // console.log("VISUALIZE STATE NODE!", stateNode)
+
   const description = stateNode.description || stateNode.meta?.description;
+
+  const layout = node.layout
 
   return (
     <div
       data-viz="stateNodeGroup"
       data-viz-active={
-        !!simState.configuration.find((n) => n.id === stateNode.id) || undefined
+        !!simState?.configuration?.find((n) => n.id === stateNode.id) || undefined
       }
       data-viz-previewed={
         previewState?.configuration.find((n) => n.id === stateNode.id) ||
         undefined
       }
       style={{
-        // outline: '1px solid blue',
+        outline: '1px solid blue',
         position: 'absolute',
-        // height: `${layout.height!}px`,
-        // width: `${layout.width!}px`,
         ...(node.layout && {
+          height: `${layout.height!}px`,
+          width: `${layout.width!}px`,
           left: `${node.layout.x}px`,
           top: `${node.layout.y}px`,
         }),

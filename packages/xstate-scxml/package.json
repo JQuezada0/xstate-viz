@@ -3,6 +3,7 @@
   "private": true,
   "version": "0.2.1",
   "description": "XState SCXML utilities",
+  "type": "module",
   "keywords": [
     "state",
     "machine",
@@ -18,12 +19,9 @@
   "exports": {
     ".": {
       "types": {
-        "import": "./dist/xstate-scxml.cjs.mjs",
-        "default": "./dist/xstate-scxml.cjs.js"
+        "default": "./src/index.ts"
       },
-      "module": "./dist/xstate-scxml.esm.js",
-      "import": "./dist/xstate-scxml.cjs.mjs",
-      "default": "./dist/xstate-scxml.cjs.js"
+      "import": "./src/index"
     },
     "./package.json": "./package.json"
   },

@@ -11,6 +11,7 @@ import {
 import { XStateDevInterface } from 'xstate/dev';
 import { createInspectMachine, InspectMachineEvent } from './inspectMachine';
 import { stringifyState } from './serialize';
+import safeStringify from 'safe-stable-stringify';
 import type {
   Inspector,
   InspectorOptions,
@@ -305,7 +306,7 @@ export function createWebSocketReceiver(options: WebSocketReceiverOptions): Acto
   const actorRef: ActorLike<ParsedReceiverEvent, ReceiverCommand> = {
     name: 'xstate.webSocketReceiver',
     send(event: ReceiverCommand) {
-      ws.send(stringify(event, options.serialize));
+      ws.send(safeStringify(event));
     },
     subscribe(
       next: (value: ParsedReceiverEvent) => void,

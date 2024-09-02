@@ -23,6 +23,11 @@
         },
         "build-and-check": {
             "dependsOn": ["build-all", "check"]
+        },
+        "//#dev": {},
+        "dev": {
+            "persistent": true,
+            "dependsOn": ["//#dev", "^dev"]
         }
     }
 }

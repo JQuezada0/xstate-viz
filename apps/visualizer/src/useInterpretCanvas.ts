@@ -1,39 +1,27 @@
-import { useInterpret } from '@xstate/react';
+import { useActorRef, createActorContext } from '@xstate/react';
 import { useEffect } from 'react';
-import { canvasMachine, canvasModel } from './canvasMachine';
+import { canvasMachine, canvasMachineInitialContext } from './canvasMachine';
 import './Graph';
 import { localCache } from './localCache';
 import { EmbedContext } from './types';
 
+export const CanvasContext = createActorContext(canvasMachine)
+
 export const useInterpretCanvas = ({
-  sourceID,
-  embed,
+  // sourceID,
+  // embed,
 }: {
-  sourceID: string | null;
-  embed?: EmbedContext;
+  // sourceID: string | null;
+  // embed?: EmbedContext;
 }) => {
-  const canvasService = useInterpret(canvasMachine, {
-    actions: {
-      persistPositionToLocalStorage: (context) => {
-        // TODO: This can be more elegant when we have system actor
-        const { zoom, viewbox, embed } = context;
-        if (!embed?.isEmbedded) {
-          localCache.savePosition(sourceID, { zoom, viewbox });
-        }
-      },
-    },
-    context: {
-      ...canvasModel.initialContext,
-      embed,
-    },
-  });
+  const canvasService = useActorRef(canvasMachine);
 
   useEffect(() => {
     canvasService.send({
       type: 'SOURCE_CHANGED',
-      id: sourceID,
+      // id: sourceID,
     });
-  }, [sourceID, canvasService]);
+  }, [canvasService]);
 
   return canvasService;
 };

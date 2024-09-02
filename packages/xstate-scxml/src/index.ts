@@ -6,6 +6,8 @@ import {
   UnknownAction,
 } from "xstate";
 
+export type { SCXML } from "./scxml"
+
 export function flatten<T>(array: Array<T | T[]>): T[] {
   return ([] as T[]).concat(...array);
 }

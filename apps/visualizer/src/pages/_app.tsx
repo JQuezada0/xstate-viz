@@ -1,6 +1,5 @@
-import { useInterpret } from '@xstate/react';
-import type { AppProps } from 'next/app';
-import { useRouter } from 'next/router';
+import { useActorRef } from '@xstate/react';
+// import { useRouter } from 'next/router';
 import '../ActionViz.scss';
 import '../DelayViz.scss';
 import '../EdgeViz.scss';
@@ -8,28 +7,37 @@ import '../EventTypeViz.scss';
 import '../InvokeViz.scss';
 import '../StateNodeViz.scss';
 import '../TransitionViz.scss';
-import { AuthProvider } from '../authContext';
-import { createAuthMachine } from '../authMachine';
+// import { AuthProvider } from '../authContext';
+// import { createAuthMachine } from '../authMachine';
 import '../base.scss';
 import '../monacoPatch';
+import { SingleViz } from "../SingleViz"
+import { getTaskMachineForVisualization } from "../definition"
 
 // import { isOnClientSide } from '../isOnClientSide';
 
-const MyApp = ({ pageProps, Component }: AppProps) => {
-  const router = useRouter();
+type AppProps = {
+  // pageProps: any
+  // children?: (props: any) => React.ReactNode
+}
 
-  const authService = useInterpret(
-    createAuthMachine({
-      sourceRegistryData: pageProps.sourceRegistryData,
-      router,
-      isEmbbeded: pageProps.isEmbedded,
-    }),
-  );
+const MyApp: React.FC<AppProps> = () => {
+  // const router = useRouter();
+
+  const machine = getTaskMachineForVisualization()
+
+  // const authService = useActorRef(
+  //   createAuthMachine({
+  //     sourceRegistryData: pageProps.sourceRegistryData,
+  //     router,
+  //     isEmbbeded: pageProps.isEmbedded,
+  //   }),
+  // );
 
   return (
-    <AuthProvider value={authService}>
-      <Component {...pageProps} />
-    </AuthProvider>
+    <div>
+      <SingleViz machine={machine} />
+    </div>
   );
 };
 

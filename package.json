@@ -3,6 +3,7 @@
   "version": "0.0.1",
   "private": true,
   "license": "MIT",
+  "type": "module",
   "workspaces": [
     "packages/*",
     "apps/*"
@@ -39,6 +40,7 @@
     "build-js": "vite build",
     "check-types": "tsc --build",
     "build": "turbo run build-and-check",
+    "up": "turbo run dev",
     "//": "postinstall: patch-package && mkdir -p public/monaco-editor && cp -r node_modules/monaco-editor public"
   },
   "eslintConfig": {
@@ -57,6 +59,7 @@
     "@types/prettier": "^2.3.2",
     "@types/react": "18.3.0",
     "@types/react-dom": "18.3.0",
+    "@vitejs/plugin-react": "4.3.1",
     "babel-jest": "^27.0.6",
     "cypress": "^8.0.0",
     "cypress-localstorage-commands": "^1.5.0",

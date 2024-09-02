@@ -2,27 +2,32 @@ import type { editor } from 'monaco-editor';
 import type {
   AnyEventObject,
   AnyInterpreter,
-  State,
+  // State,
   StateMachine,
+  AnyStateMachine,
+  AnyState,
+  AnyMachineSnapshot,
+  AnyActor,
+  AnyActorLogic
 } from 'xstate';
-import { Model } from 'xstate/lib/model.types';
+// import { Model } from 'xstate/lib/model.types';
 import { SourceFile } from './apiTypes';
 
-export type AnyStateMachine = StateMachine<any, any, any>;
+// export type StateFrom<T> = T extends StateMachine<
+//   infer TContext,
+//   any,
+//   infer TEvent
+// >
+//   ? State<TContext, TEvent>
+//   : T extends Model<infer TContext, infer TEvent>
+//   ? State<TContext, TEvent, any, any>
+//   : never;
 
-export type StateFrom<T> = T extends StateMachine<
-  infer TContext,
-  any,
-  infer TEvent
->
-  ? State<TContext, TEvent>
-  : T extends Model<infer TContext, infer TEvent>
-  ? State<TContext, TEvent, any, any>
-  : never;
-
-export type AnyState = State<any, any>;
+// export type AnyState = State<any, any>;
 
 export type SourceProvider = 'gist' | 'registry';
+
+export type MachineStatus = AnyMachineSnapshot["status"]
 
 export interface SourceRegistryData extends SourceFile {
   // we can't trust SSR data to be accurate because at the moment we can use authenticated user during SSR
@@ -37,14 +42,15 @@ export type ServiceRefEvents =
     }
   | {
       type: 'xstate.state';
-      state: AnyState;
+      state: AnyMachineSnapshot;
     };
 
 export interface ServiceData {
   sessionId: string;
-  machine: AnyStateMachine;
-  state: AnyState;
-  status: AnyInterpreter['status'];
+  machine: AnyActorLogic;
+  state: AnyMachineSnapshot;
+  // actor: AnyActor;
+  status: MachineStatus
   source: 'inspector' | 'visualizer' | 'child';
   parent: string | undefined;
 }

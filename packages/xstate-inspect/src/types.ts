@@ -1,6 +1,7 @@
 import type {
   ActorRef,
   AnyActor,
+  AnyMachineSnapshot,
   AnyStateMachine,
   Snapshot,
   SnapshotFrom,
@@ -41,7 +42,7 @@ export interface Inspector {
 
 /** Events that the receiver sends to the inspector */
 export type ReceiverCommand =
-  | { type: 'xstate.event'; event: string; service: string }
+  | { type: 'xstate.event'; event: string; }
   | { type: 'xstate.inspecting' };
 
 /** Events that the receiver receives from the inspector */
@@ -67,7 +68,7 @@ export type ParsedReceiverEvent =
   | {
       type: 'service.register';
       machine: AnyStateMachine;
-      state: StateConfig<any, any>;
+      state: AnyMachineSnapshot;
       id: string;
       sessionId: string;
       parent?: string;
@@ -76,7 +77,7 @@ export type ParsedReceiverEvent =
   | { type: 'service.stop'; sessionId: string }
   | {
       type: 'service.state';
-      state: StateConfig<any, any>;
+      state: AnyMachineSnapshot;
       sessionId: string;
     }
   | { type: 'service.event'; event: string; sessionId: string };
@@ -94,5 +95,5 @@ export interface WindowReceiverOptions {
 export interface WebSocketReceiverOptions {
   server: string;
   protocol?: 'ws' | 'wss';
-  serialize: Replacer | undefined;
+  // serialize: Replacer | undefined;
 }

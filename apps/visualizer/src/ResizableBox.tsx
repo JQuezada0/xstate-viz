@@ -1,8 +1,7 @@
 import { Box, BoxProps } from '@chakra-ui/react';
 import { useMachine } from '@xstate/react';
 import { useEffect, useRef, useState } from 'react';
-import { createModel } from 'xstate/lib/model';
-import { assign } from 'xstate';
+import { setup, assign } from 'xstate';
 import {
   dragSessionModel,
   dragSessionTracker,
@@ -10,25 +9,25 @@ import {
 } from './dragSessionTracker';
 import { Point } from './types';
 
-const resizableModel = createModel(
+const resizableModel = setup(
   {
-    ref: null as React.MutableRefObject<HTMLElement> | null,
-    widthDelta: 0,
-  },
-  {
-    events: {
-      DRAG_SESSION_STARTED: ({ point }: { point: Point }) => ({
-        point,
-      }),
-      DRAG_SESSION_STOPPED: () => ({}),
-      POINTER_MOVED_BY: ({ delta }: { delta: PointDelta }) => ({
-        delta,
-      }),
+    types: {
+      context: {} as {
+        ref: React.MutableRefObject<HTMLElement> | null,
+        widthDelta: number,
+      },
+      events: {} as { type: "DRAG_SESSION_STARTED" }
+        | { type: "DRAG_SESSION_STOPPED" }
+        | { type: "POINTER_MOVED_BY" }
     },
   },
 );
 
 const resizableMachine = resizableModel.createMachine({
+  context: {
+    ref: null as React.MutableRefObject<HTMLElement> | null,
+    widthDelta: 0,
+  },
   invoke: {
     id: 'dragSessionTracker',
     src: (ctx) =>
