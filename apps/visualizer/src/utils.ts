@@ -90,6 +90,17 @@ export interface Edge<
 }
 
 export function getChildren(stateNode: StateNode): StateNode[] {
+  const invoked = stateNode.config.invoke
+
+  if (invoked && invoked.src && typeof invoked.src === "object" && "states" in stateNode.config.invoke.src) {
+    console.log("INVOKED MACHINE!", stateNode.config.invoke.src.root)
+    return [stateNode.config.invoke.src.root]
+  }
+
+  // if (stateNode.config.invoke && stateNode.config.invoke.src && ) {
+   
+  // }
+
   if (!stateNode.states) {
     return [];
   }

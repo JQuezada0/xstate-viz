@@ -1,12 +1,11 @@
 import { Link } from '@chakra-ui/react';
-import { useActor } from '@xstate/react';
 import React, { useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import type { StateNode } from 'xstate';
 import { ActionViz } from './ActionViz';
 import { DirectedGraphNode } from './directedGraph';
 import { InvokeViz } from './EventTypeViz';
-import { useSimulation, SimulationContext } from './SimulationContext';
+import { SimulationContext } from './SimulationContext';
 import "./StateNodeViz.scss"
 
 interface BaseStateNodeDef {
@@ -59,8 +58,8 @@ export const StateNodeViz: React.FC<{
   stateNode: StateNode;
 }> = ({ stateNode, node }) => {
   const service = SimulationContext.useActorRef(); // useSimulation();
-  service.start()
-  // const [state] = useActor(service);
+  // service.start()
+  // // const [state] = useActor(service);
 
   const state = service.getSnapshot()
 
@@ -104,7 +103,7 @@ export const StateNodeViz: React.FC<{
         undefined
       }
       style={{
-        outline: '1px solid blue',
+        // outline: '1px solid blue',
         position: 'absolute',
         ...(node.layout && {
           height: `${layout.height!}px`,

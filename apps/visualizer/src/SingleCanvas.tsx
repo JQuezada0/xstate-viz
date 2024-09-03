@@ -36,6 +36,7 @@ import { useEmbed } from './embedContext';
 import { CompressIcon, HandIcon } from './Icons';
 // import { useSourceActor } from './sourceMachine';
 // import { WelcomeArea } from './WelcomeArea';
+import * as styles from "./SingleCanvas.module.scss"
 
 export const CanvasViewMachine: React.FC<{ machine: AnyStateMachine }> = ({}) => {
     // TODO: refactor this so an event can be explicitly sent to a machine
@@ -124,7 +125,7 @@ export const CanvasViewMachine: React.FC<{ machine: AnyStateMachine }> = ({}) =>
           </Box>
         )}
         
-        <CanvasContainer panModeEnabled={panModeEnabled} canvasModel={canvasService}>
+        <CanvasContainer className={styles.canvas} panModeEnabled={panModeEnabled} canvasModel={canvasService}>
           {digraph && <Graph digraph={digraph} />}  
           {/* {isLayoutPending && (
             <Overlay>
@@ -162,7 +163,7 @@ export const CanvasViewMachine: React.FC<{ machine: AnyStateMachine }> = ({}) =>
                     title="Zoom out"
                     icon={<MinusIcon />}
                     disabled={!shouldEnableZoomOutButton}
-                    onClick={() => canvasService.send('ZOOM.OUT')}
+                    onClick={() => canvasService.send({ type: 'ZOOM.OUT' })}
                     variant="secondary"
                   />
                   <IconButton
@@ -170,7 +171,7 @@ export const CanvasViewMachine: React.FC<{ machine: AnyStateMachine }> = ({}) =>
                     title="Zoom in"
                     icon={<AddIcon />}
                     disabled={!shouldEnableZoomInButton}
-                    onClick={() => canvasService.send('ZOOM.IN')}
+                    onClick={() => canvasService.send({ type: 'ZOOM.IN' })}
                     variant="secondary"
                   />
                 </>
@@ -179,7 +180,7 @@ export const CanvasViewMachine: React.FC<{ machine: AnyStateMachine }> = ({}) =>
                 aria-label="Fit to content"
                 title="Fit to content"
                 icon={<CompressIcon />}
-                onClick={() => canvasService.send('FIT_TO_CONTENT')}
+                onClick={() => canvasService.send({ type: 'FIT_TO_CONTENT' })}
                 variant="secondary"
               />
               {!embed?.isEmbedded && (
@@ -187,7 +188,7 @@ export const CanvasViewMachine: React.FC<{ machine: AnyStateMachine }> = ({}) =>
                   aria-label="Reset canvas"
                   title="Reset canvas"
                   icon={<RepeatIcon />}
-                  onClick={() => canvasService.send('POSITION.RESET')}
+                  onClick={() => canvasService.send({ type: 'POSITION.RESET' })}
                   variant="secondary"
                 />
               )}
@@ -207,7 +208,7 @@ export const CanvasViewMachine: React.FC<{ machine: AnyStateMachine }> = ({}) =>
               <Button
                 size="sm"
                 marginLeft={2}
-                onClick={() => simService.send('MACHINES.RESET')}
+                onClick={() => simService.send({ type: 'MACHINES.RESET' })}
                 variant="secondary"
               >
                 RESET

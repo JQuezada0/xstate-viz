@@ -1,303 +1,317 @@
-import React, { CSSProperties, useEffect, useRef } from 'react';
-import { ZoomFactor } from './canvasMachine';
+import React, { CSSProperties, useEffect, useRef } from "react";
+import { ZoomFactor } from "./canvasMachine";
 // import { useCanvas } from './CanvasContext';
-import { CanvasContext } from './useInterpretCanvas';
-import { canvasMachine } from "./canvasMachine"
-import { useMachine } from '@xstate/react';
-import { AnyState, setup, assign, raise, fromCallback, ActorRef, EventObject, ContextFrom, Actor } from 'xstate';
-import { Point } from './pathUtils';
+import { CanvasContext } from "./useInterpretCanvas";
+import { canvasMachine } from "./canvasMachine";
+import { useMachine } from "@xstate/react";
+import * as styles from "./SingleCanvas.module.scss"
+import {
+  AnyState,
+  setup,
+  assign,
+  raise,
+  fromCallback,
+  ActorRef,
+  EventObject,
+  ContextFrom,
+  Actor,
+  createActor,
+} from "xstate";
+import { Point } from "./pathUtils";
 import {
   isAcceptingArrowKey,
   isAcceptingSpaceNatively,
   isTextInputLikeElement,
   isWithPlatformMetaKey,
-} from './utils';
-import { useEmbed } from './embedContext';
+} from "./utils";
+import { useEmbed } from "./embedContext";
 import {
   dragSessionModel,
   dragSessionTracker,
   DragSession,
   PointDelta,
-} from './dragSessionTracker';
+} from "./dragSessionTracker";
 
 type DragContext = {
-  ref: React.MutableRefObject<HTMLElement> | null
-}
+  ref: React.MutableRefObject<HTMLElement> | null;
+};
 
-const dragModel = setup(
-  {
-    types: {
-      input: {} as DragContext,
-      context: {} as DragContext,
-      events: {} as 
-        (| { type: "LOCK" }
-        | { type: "RELEASE" }
-        | { type: "ENABLE_PANNING", sessionSeed: DragSession | null }
-        | { type: "DISABLE_PANNING" }
-        | { type: "ENABLE_PAN_MODE" }
-        | { type: "DISABLE_PAN_MODE" }
-        | { type: "DRAG_SESSION_STARTED", point: Point }
-        | { type: "DRAG_SESSION_STOPPED" }
-        | { type: "POINTER_MOVED_BY", delta: PointDelta }
-        | { type: "WHEEL_PRESSED", data: DragSession }
-        | { type: "WHEEL_RELEASED" })
+const dragModel = setup({
+  types: {
+    input: {} as DragContext,
+    context: {} as DragContext,
+    events: {} as
+      | { type: "LOCK" }
+      | { type: "RELEASE" }
+      | { type: "ENABLE_PANNING"; sessionSeed: DragSession | null }
+      | { type: "DISABLE_PANNING" }
+      | { type: "ENABLE_PAN_MODE" }
+      | { type: "DISABLE_PAN_MODE" }
+      | { type: "DRAG_SESSION_STARTED"; point: Point }
+      | { type: "DRAG_SESSION_STOPPED" }
+      | { type: "POINTER_MOVED_BY"; delta: PointDelta }
+      | { type: "WHEEL_PRESSED"; data: DragSession }
+      | { type: "WHEEL_RELEASED" },
+  },
+  actions: {
+    disableTextSelection: assign(({ context: ctx }) => {
+      const node = ctx.ref!.current!;
+      node.style.userSelect = "none";
+
+      return ctx;
+    }),
+    enableTextSelection: assign(({ context: ctx }) => {
+      const node = ctx.ref!.current!;
+      node.style.userSelect = "unset";
+
+      return ctx;
+    }),
+    sendPanChange: ({ event }) => {
+      // if (event.type === "POINTER_MOVED_BY") {
+      //   canvasModel.send({
+      //     type: "PAN",
+      //     // we need to translate a pointer move to the viewbox move
+      //     // and that is going into the opposite direction than the pointer
+      //     dx: -event.delta.x,
+      //     dy: -event.delta.y,
+      //   })
+      // }
     },
-    actions: {
-      disableTextSelection: assign(({ context: ctx }) => {
-        const node = ctx.ref!.current!;
-        node.style.userSelect = 'none';
-
-        return ctx
-      }),
-      enableTextSelection: assign(({ context: ctx }) => {
-        const node = ctx.ref!.current!;
-        node.style.userSelect = 'unset';
-
-        return ctx
-      }),
-      sendPanChange: ({ event }) => {
-        // if (event.type === "POINTER_MOVED_BY") {
-        //   canvasModel.send({
-        //     type: "PAN",
-        //     // we need to translate a pointer move to the viewbox move
-        //     // and that is going into the opposite direction than the pointer
-        //     dx: -event.delta.x,
-        //     dy: -event.delta.y,
-        //   })
-        // }
-      },
-    },
-    actors: {
-      wheelPressListener: fromCallback<EventObject, { context: DragContext }>(({ sendBack, input }) => {
-        const { context: ctx } = input
+  },
+  guards: {
+    isPanDisabled: () => false, // !!embed?.isEmbedded && !embed.pan,
+  },
+  actors: {
+    wheelPressListener: fromCallback<EventObject, { context: DragContext }>(
+      ({ sendBack, input }) => {
+        const { context: ctx } = input;
         const node = ctx.ref!.current!;
         const listener = (ev: PointerEvent) => {
           if (ev.button === 1) {
-            sendBack(
-              {
-                type: "WHEEL_PRESSED",
-                data: {
-                  pointerId: ev.pointerId,
-                  point: {
-                    x: ev.pageX,
-                    y: ev.pageY,
-                  },
-                }
-              }
-            );
-          }
-        };
-        node.addEventListener('pointerdown', listener);
-        return () => node.removeEventListener('pointerdown', listener);
-      }),
-      invokeDetectLock: fromCallback(({ sendBack }) => {
-        function keydownListener(e: KeyboardEvent) {
-          const target = e.target as HTMLElement;
-
-          if (e.code === 'Space' && !isAcceptingSpaceNatively(target)) {
-            e.preventDefault();
-            sendBack({ type: 'LOCK' });
-          }
-        }
-
-        window.addEventListener('keydown', keydownListener);
-        return () => {
-          window.removeEventListener('keydown', keydownListener);
-        };
-      }),
-      invokeDetectRelease: fromCallback(({ sendBack }) => {
-        // TODO: we should release in more scenarios
-        // e.g.:
-        // - when the window blurs (without this we might get stuck in the locked state without Space actually being held down)
-        // - when unrelated keyboard keys get pressed (without this other actions might be executed while dragging which often might not be desired)
-        function keyupListener(e: KeyboardEvent) {
-          if (e.code === 'Space') {
-            e.preventDefault();
-            sendBack({ type: 'RELEASE' });
-          }
-        }
-
-        window.addEventListener('keyup', keyupListener);
-        return () => {
-          window.removeEventListener('keyup', keyupListener);
-        };
-      }),
-    }
-  }
-);
-
-const dragMachine = dragModel.createMachine(
-  {
-    context: ({ input }) => ({ ref: input.ref }),
-    preserveActionOrder: true,
-    initial: 'checking_if_disabled',
-    actions: {
-      disableTextSelection: assign(({ context: ctx }) => {
-        const node = ctx.ref!.current!;
-        node.style.userSelect = 'none';
-      }),
-      enableTextSelection: assign(({ context: ctx }) => {
-        const node = ctx.ref!.current!;
-        node.style.userSelect = 'unset';
-      }),
-    },
-    states: {
-      checking_if_disabled: {
-        always: [
-          {
-            target: 'permanently_disabled',
-            guard: 'isPanDisabled',
-          },
-          'enabled',
-        ],
-      },
-      permanently_disabled: {},
-      enabled: {
-        type: 'parallel',
-        states: {
-          mode: {
-            initial: 'lockable',
-            states: {
-              lockable: {
-                initial: 'released',
-                states: {
-                  released: {
-                    invoke: [
-                      {
-                        src: 'invokeDetectLock',
-                      },
-                      {
-                        src: 'wheelPressListener',
-                        input: ({ context }) => ({ context }),
-                      },
-                    ],
-                    on: {
-                      LOCK: 'locked',
-                      WHEEL_PRESSED: 'wheelPressed',
-                    },
-                  },
-                  locked: {
-                    entry: raise({
-                      type: "ENABLE_PANNING",
-                      sessionSeed: null,
-                    }),
-                    exit: raise({
-                      type: "DISABLE_PANNING",
-                    }),
-                    on: { RELEASE: 'released' },
-                    invoke: {
-                      src: 'invokeDetectRelease',
-                    },
-                  },
-                  wheelPressed: {
-                    entry: raise((({ context: ctx, event: ev }) => ({
-                      type: "ENABLE_PANNING",
-                      sessionSeed: ev.sessionSeed
-                    }))),
-                    exit: raise({
-                      type: "DISABLE_PANNING",
-                    }),
-                    on: {
-                      DRAG_SESSION_STOPPED: 'released',
-                    },
-                  },
-                },
-                on: {
-                  ENABLE_PAN_MODE: 'pan',
+            sendBack({
+              type: "WHEEL_PRESSED",
+              data: {
+                pointerId: ev.pointerId,
+                point: {
+                  x: ev.pageX,
+                  y: ev.pageY,
                 },
               },
-              pan: {
-                entry: raise({
-                  type: "ENABLE_PANNING",
-                  sessionSeed: null,
-                }),
-                exit: raise({
-                  type: "DISABLE_PANNING",
-                }),
-                on: {
-                  DISABLE_PAN_MODE: 'lockable',
+            });
+          }
+        };
+        node.addEventListener("pointerdown", listener);
+        return () => node.removeEventListener("pointerdown", listener);
+      },
+    ),
+    invokeDetectLock: fromCallback(({ sendBack }) => {
+      function keydownListener(e: KeyboardEvent) {
+        const target = e.target as HTMLElement;
+
+        if (e.code === "Space" && !isAcceptingSpaceNatively(target)) {
+          e.preventDefault();
+          sendBack({ type: "LOCK" });
+        }
+      }
+
+      window.addEventListener("keydown", keydownListener);
+      return () => {
+        window.removeEventListener("keydown", keydownListener);
+      };
+    }),
+    invokeDetectRelease: fromCallback(({ sendBack }) => {
+      // TODO: we should release in more scenarios
+      // e.g.:
+      // - when the window blurs (without this we might get stuck in the locked state without Space actually being held down)
+      // - when unrelated keyboard keys get pressed (without this other actions might be executed while dragging which often might not be desired)
+      function keyupListener(e: KeyboardEvent) {
+        if (e.code === "Space") {
+          e.preventDefault();
+          sendBack({ type: "RELEASE" });
+        }
+      }
+
+      window.addEventListener("keyup", keyupListener);
+      return () => {
+        window.removeEventListener("keyup", keyupListener);
+      };
+    }),
+  },
+});
+
+const dragMachine = dragModel.createMachine({
+  context: ({ input }) => ({ ref: input.ref }),
+  preserveActionOrder: true,
+  initial: "checking_if_disabled",
+  actions: {
+    disableTextSelection: assign(({ context: ctx }) => {
+      const node = ctx.ref!.current!;
+      node.style.userSelect = "none";
+    }),
+    enableTextSelection: assign(({ context: ctx }) => {
+      const node = ctx.ref!.current!;
+      node.style.userSelect = "unset";
+    }),
+  },
+  states: {
+    checking_if_disabled: {
+      always: [
+        {
+          target: "permanently_disabled",
+          guard: "isPanDisabled",
+        },
+        "enabled",
+      ],
+    },
+    permanently_disabled: {},
+    enabled: {
+      type: "parallel",
+      states: {
+        mode: {
+          initial: "lockable",
+          states: {
+            lockable: {
+              initial: "released",
+              states: {
+                released: {
+                  invoke: [
+                    {
+                      src: "invokeDetectLock",
+                    },
+                    {
+                      src: "wheelPressListener",
+                      input: ({ context }) => ({ context }),
+                    },
+                  ],
+                  on: {
+                    LOCK: "locked",
+                    WHEEL_PRESSED: "wheelPressed",
+                  },
+                },
+                locked: {
+                  entry: raise({
+                    type: "ENABLE_PANNING",
+                    sessionSeed: null,
+                  }),
+                  exit: raise({
+                    type: "DISABLE_PANNING",
+                  }),
+                  on: { RELEASE: "released" },
+                  invoke: {
+                    src: "invokeDetectRelease",
+                  },
+                },
+                wheelPressed: {
+                  entry: raise(({ context: ctx, event: ev }) => ({
+                    type: "ENABLE_PANNING",
+                    sessionSeed: ev.sessionSeed,
+                  })),
+                  exit: raise({
+                    type: "DISABLE_PANNING",
+                  }),
+                  on: {
+                    DRAG_SESSION_STOPPED: "released",
+                  },
+                },
+              },
+              on: {
+                ENABLE_PAN_MODE: {
+                  target: "pan",
                 },
               },
             },
+            pan: {
+              entry: raise({
+                type: "ENABLE_PANNING",
+                sessionSeed: null,
+              }),
+              exit: raise({
+                type: "DISABLE_PANNING",
+              }),
+              on: {
+                DISABLE_PAN_MODE: "lockable",
+              },
+            },
           },
-          panning: {
-            initial: 'disabled',
-            states: {
-              disabled: {
-                on: {
-                  ENABLE_PANNING: 'enabled',
+        },
+        panning: {
+          initial: "disabled",
+          states: {
+            disabled: {
+              on: {
+                ENABLE_PANNING: "enabled",
+              },
+            },
+            enabled: {
+              entry: "disableTextSelection",
+              exit: "enableTextSelection",
+              invoke: {
+                id: "dragSessionTracker",
+                src: dragSessionTracker,
+                input: ({ context, event }) => {
+                  return {
+                    ref: context.ref,
+                    session:
+                      // this is just defensive programming
+                      // this really should receive ENABLE_PANNING at all times as this is the event that is making this state to be entered
+                      // however, raised events are not given to invoke creators so we have to fallback handling WHEEL_PRESSED event
+                      // in reality, because of this issue, ENABLE_PANNING that we can receive here won't ever hold any `sessionSeed` (as that is only coming from the wheel-oriented interaction)
+                      event.type === "ENABLE_PANNING"
+                        ? event.sessionSeed
+                        : (
+                            event as Extract<
+                              typeof ev,
+                              { type: "WHEEL_PRESSED" }
+                            >
+                          ).data,
+                  };
                 },
               },
-              enabled: {
-                entry: 'disableTextSelection',
-                exit: 'enableTextSelection',
-                invoke: {
-                  id: 'dragSessionTracker',
-                  src: ({ context: ctx, event: ev }) =>
-                    dragSessionTracker.withContext({
-                      // ...dragSessionModel.initialContext,
-                      ref: ctx.ref,
-                      session:
-                        // this is just defensive programming
-                        // this really should receive ENABLE_PANNING at all times as this is the event that is making this state to be entered
-                        // however, raised events are not given to invoke creators so we have to fallback handling WHEEL_PRESSED event
-                        // in reality, because of this issue, ENABLE_PANNING that we can receive here won't ever hold any `sessionSeed` (as that is only coming from the wheel-oriented interaction)
-                        ev.type === 'ENABLE_PANNING'
-                          ? ev.sessionSeed
-                          : (
-                              ev as Extract<
-                                typeof ev,
-                                { type: 'WHEEL_PRESSED' }
-                              >
-                            ).data,
-                    }),
+              on: {
+                DISABLE_PANNING: "disabled",
+              },
+              initial: "idle",
+              states: {
+                idle: {
+                  meta: {
+                    cursor: "grab",
+                  },
+                  on: {
+                    DRAG_SESSION_STARTED: "active",
+                  },
                 },
-                on: {
-                  DISABLE_PANNING: 'disabled',
-                },
-                initial: 'idle',
-                states: {
-                  idle: {
-                    meta: {
-                      cursor: 'grab',
+                active: {
+                  initial: "grabbed",
+                  on: {
+                    DRAG_SESSION_STOPPED: ".done",
+                  },
+                  states: {
+                    grabbed: {
+                      meta: {
+                        cursor: "grabbing",
+                      },
+                      on: {
+                        POINTER_MOVED_BY: {
+                          target: "dragging",
+                          actions: "sendPanChange",
+                        },
+                      },
                     },
-                    on: {
-                      DRAG_SESSION_STARTED: 'active',
+                    dragging: {
+                      meta: {
+                        cursor: "grabbing",
+                      },
+                      on: {
+                        POINTER_MOVED_BY: {
+                          actions: "sendPanChange",
+                        },
+                      },
+                    },
+                    done: {
+                      type: "final",
                     },
                   },
-                  active: {
-                    initial: 'grabbed',
-                    on: {
-                      DRAG_SESSION_STOPPED: '.done',
-                    },
-                    states: {
-                      grabbed: {
-                        meta: {
-                          cursor: 'grabbing',
-                        },
-                        on: {
-                          POINTER_MOVED_BY: {
-                            target: 'dragging',
-                            actions: 'sendPanChange',
-                          },
-                        },
-                      },
-                      dragging: {
-                        meta: {
-                          cursor: 'grabbing',
-                        },
-                        on: {
-                          POINTER_MOVED_BY: { 
-                            actions: 'sendPanChange',
-                          },
-                        },
-                      },
-                      done: {
-                        type: 'final',
-                      },
-                    },
-                    onDone: 'idle',
-                  },
+                  onDone: "idle",
                 },
               },
             },
@@ -306,55 +320,56 @@ const dragMachine = dragModel.createMachine(
       },
     },
   },
-);
+});
 
 const getCursorByState = (state: AnyState) => {
-  const meta = state.getMeta()
+  console.log("STATE IS!", state);
+  const meta = state.getMeta();
   return (
     Object.values(meta).find((m) =>
-      Boolean((m as { cursor?: CSSProperties['cursor'] }).cursor),
-    ) as { cursor?: CSSProperties['cursor'] }
+      Boolean((m as { cursor?: CSSProperties["cursor"] }).cursor),
+    ) as { cursor?: CSSProperties["cursor"] }
   )?.cursor;
-}
+};
 
-export const CanvasContainer: React.FC<{ panModeEnabled: boolean; children: React.ReactNode; canvasModel: Actor<typeof canvasMachine> }> = ({
-  children,
-  panModeEnabled,
-  canvasModel,
-}) => {
+export const CanvasContainer: React.FC<{
+  panModeEnabled: boolean;
+  children: React.ReactNode;
+  canvasModel: Actor<typeof canvasMachine>;
+}> = ({ children, panModeEnabled, canvasModel }) => {
   const canvasService = CanvasContext.useActorRef();
   const embed = useEmbed();
   const canvasRef = useRef<HTMLDivElement>(null!);
 
-  const [state, send] = useMachine(dragMachine.provide({
-    actions: {
-      sendPanChange: ({ event }) => {
-        if (event.type === "POINTER_MOVED_BY") {
-          canvasModel.send({
-            type: "PAN",
-            // we need to translate a pointer move to the viewbox move
-            // and that is going into the opposite direction than the pointer
-            dx: -event.delta.x,
-            dy: -event.delta.y,
-          })
-        }
+  const [state, send, actor] = useMachine(
+    dragMachine.provide({
+      actions: {
+        sendPanChange: ({ event }) => {
+          if (event.type === "POINTER_MOVED_BY") {
+            canvasModel.send({
+              type: "PAN",
+              // we need to translate a pointer move to the viewbox move
+              // and that is going into the opposite direction than the pointer
+              dx: -event.delta.x,
+              dy: -event.delta.y,
+            });
+          }
+        },
+      },
+    }),
+    {
+      input: {
+        // ...dragModel.initialContext,
+        ref: canvasRef,
       },
     },
-    guards: {
-      isPanDisabled: () => !!embed?.isEmbedded && !embed.pan,
-    },
-  }), {
-    input: {
-      // ...dragModel.initialContext,
-      ref: canvasRef,
-    }
-  });
+  );
 
   React.useEffect(() => {
     if (panModeEnabled) {
-      send({ type: "ENABLE_PAN_MODE" });
+      actor.send({ type: "ENABLE_PAN_MODE" });
     } else {
-      send({ type: "DISABLE_PAN_MODE" });
+      actor.send({ type: "DISABLE_PAN_MODE" });
     }
   }, [panModeEnabled]);
 
@@ -370,7 +385,7 @@ export const CanvasContainer: React.FC<{ panModeEnabled: boolean; children: Reac
       const clientRect = entry.target.getBoundingClientRect();
 
       canvasService.send({
-        type: 'CANVAS_RECT_CHANGED',
+        type: "CANVAS_RECT_CHANGED",
         height: clientRect.height,
         width: clientRect.width,
         offsetX: clientRect.left,
@@ -394,38 +409,50 @@ export const CanvasContainer: React.FC<{ panModeEnabled: boolean; children: Reac
       }
 
       switch (e.key) {
-        case 'ArrowUp':
+        case "ArrowUp":
           if (isAcceptingArrowKey(target)) {
             return;
           }
           e.preventDefault();
-          canvasService.send(canvasModel.events['PAN.DOWN'](e.shiftKey));
+          canvasService.send({
+            type: "PAN.DOWN",
+            isLongPan: e.shiftKey,
+          });
           return;
-        case 'ArrowLeft':
+        case "ArrowLeft":
           if (isAcceptingArrowKey(target)) {
             return;
           }
           e.preventDefault();
-          canvasService.send(canvasModel.events['PAN.RIGHT'](e.shiftKey));
+          canvasService.send({
+            type: "PAN.RIGHT",
+            isLongPan: e.shiftKey,
+          });
           return;
-        case 'ArrowDown':
+        case "ArrowDown":
           if (isAcceptingArrowKey(target)) {
             return;
           }
           e.preventDefault();
-          canvasService.send(canvasModel.events['PAN.UP'](e.shiftKey));
+          canvasService.send({
+            type: "PAN.UP",
+            isLongPan: e.shiftKey,
+          });
           return;
-        case 'ArrowRight':
+        case "ArrowRight":
           if (isAcceptingArrowKey(target)) {
             return;
           }
           e.preventDefault();
-          canvasService.send(canvasModel.events['PAN.LEFT'](e.shiftKey));
+          canvasService.send({
+            type: "PAN.LEFT",
+            isLongPan: e.shiftKey,
+          });
           return;
         // can come from numpad
-        case '+':
+        case "+":
         // this corresponds to the =/+ key, we expect it to be pressed without a Shift
-        case '=':
+        case "=":
           // allow to zoom the whole page
           if (isWithPlatformMetaKey(e)) {
             return;
@@ -435,12 +462,12 @@ export const CanvasContainer: React.FC<{ panModeEnabled: boolean; children: Reac
           }
           e.preventDefault();
           canvasService.send({
-            type: "ZOOM.IN"
+            type: "ZOOM.IN",
           });
           return;
         // this corresponds to the -/_ key, we expect it to be pressed without a Shift
         // it apparently also corresponds to the minus sign on the numpad, even though it inputs the actual minus sign (char code 8722)
-        case '-':
+        case "-":
           // allow to zoom the whole page
           if (isWithPlatformMetaKey(e)) {
             return;
@@ -455,9 +482,9 @@ export const CanvasContainer: React.FC<{ panModeEnabled: boolean; children: Reac
           });
           return;
         // can come from numpad
-        case '1':
+        case "1":
         // this corresponds to the 1/! key
-        case '!':
+        case "!":
           if (!e.shiftKey) {
             return;
           }
@@ -469,9 +496,9 @@ export const CanvasContainer: React.FC<{ panModeEnabled: boolean; children: Reac
       }
     }
 
-    window.addEventListener('keydown', keydownListener);
+    window.addEventListener("keydown", keydownListener);
     return () => {
-      window.removeEventListener('keydown', keydownListener);
+      window.removeEventListener("keydown", keydownListener);
     };
   }, []);
 
@@ -486,39 +513,44 @@ export const CanvasContainer: React.FC<{ panModeEnabled: boolean; children: Reac
       if (isZoomEnabled && isWithPlatformMetaKey(e)) {
         e.preventDefault();
         if (e.deltaY > 0) {
-          canvasService.send(
-            canvasModel.events['ZOOM.OUT'](
-              { x: e.clientX, y: e.clientY },
-              ZoomFactor.slow,
-            ),
-          );
+          canvasService.send({
+            type: "ZOOM.OUT",
+            zoomFactor: ZoomFactor.slow,
+            point: { x: e.clientX, y: e.clientY },
+          });
         } else if (e.deltaY < 0) {
-          canvasService.send(
-            canvasModel.events['ZOOM.IN'](
-              { x: e.clientX, y: e.clientY },
-              ZoomFactor.slow,
-            ),
-          );
+          canvasService.send({
+            type: "ZOOM.IN",
+            zoomFactor: ZoomFactor.slow,
+            point: {
+              ...{ x: e.clientX, y: e.clientY },
+            },
+          });
         }
       } else if (isPanEnabled && !e.metaKey && !e.ctrlKey) {
         e.preventDefault();
-        canvasService.send(canvasModel.events.PAN(e.deltaX, e.deltaY));
+        canvasService.send({
+          type: "PAN",
+          dx: e.deltaX,
+          dy: e.deltaY,
+        });
       }
     };
 
     const canvasEl = canvasRef.current;
-    canvasEl.addEventListener('wheel', onCanvasWheel);
+    canvasEl.addEventListener("wheel", onCanvasWheel);
     return () => {
-      canvasEl.removeEventListener('wheel', onCanvasWheel);
+      canvasEl.removeEventListener("wheel", onCanvasWheel);
     };
   }, [canvasService, embed]);
 
   return (
     <div
+      className={styles.canvas}
       ref={canvasRef}
       style={{
         cursor: getCursorByState(state),
-        WebkitFontSmoothing: 'auto',
+        WebkitFontSmoothing: "auto",
       }}
     >
       {children}
