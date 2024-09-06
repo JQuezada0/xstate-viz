@@ -18,7 +18,10 @@
   "main": "dist/xstate-graph.cjs.js",
   "module": "dist/xstate-graph.esm.js",
   "exports": {
-    ".": "./src/index",
+    ".": {
+      "default": "./src/index",
+      "types": "./build/index"
+    },
     "./package.json": "./package.json"
   },
   "sideEffects": false,
@@ -29,7 +32,11 @@
     "type": "git",
     "url": "git+ssh://git@github.com/statelyai/xstate.git"
   },
-  "scripts": {},
+  "scripts": {
+    "check-types": "tsc",
+    "build-js": "tswc -- src -d build",
+    "clean": "rm -rf ./build"
+  },
   "bugs": {
     "url": "https://github.com/statelyai/xstate/issues"
   },

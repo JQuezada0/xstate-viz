@@ -40,6 +40,7 @@
     "build-js": "vite build",
     "check-types": "tsc --build",
     "build": "turbo run build-and-check",
+    "clean": "turbo run clean",
     "up": "turbo run dev",
     "//": "postinstall: patch-package && mkdir -p public/monaco-editor && cp -r node_modules/monaco-editor public"
   },
@@ -51,6 +52,8 @@
   "devDependencies": {
     "@changesets/changelog-github": "^0.4.0",
     "@changesets/cli": "^2.16.0",
+    "@swc/cli": "0.4.0",
+    "@swc/core": "1.7.23",
     "@testing-library/cypress": "^8.0.0",
     "@types/bun": "latest",
     "@types/jest": "^27.0.1",
@@ -69,6 +72,7 @@
     "patch-package": "^6.4.7",
     "prettier": "^2.3.2",
     "sass": "^1.33.0",
+    "tswc": "1.2.0",
     "turbo": "2.0.14",
     "typescript": "5.5.4",
     "vite": "5.4.2"

@@ -19,8 +19,16 @@
   "license": "MIT",
   "main": "dist/xstate-react.cjs.js",
   "module": "dist/xstate-react.esm.js",
+  "typesVersions": {
+    ".": {
+      "*": ["./build/"]
+    }
+  },
   "exports": {
-    ".": "./src/index",
+    ".": {
+      "default": "./src/index",
+      "types": "./build/index"
+    },
     "./package.json": "./package.json"
   },
   "imports": {
@@ -34,7 +42,11 @@
   "files": [
     "dist"
   ],
-  "scripts": {},
+  "scripts": {
+    "check-types": "tsc",
+    "build-js": "tswc -- src -d build",
+    "clean": "rm -rf ./build"
+  },
   "bugs": {
     "url": "https://github.com/statelyai/xstate/issues"
   },

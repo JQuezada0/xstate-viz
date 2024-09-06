@@ -12,7 +12,8 @@
     },
     "scripts": {
         "check": "tsc",
-        "dev": "vite dev"
+        "dev": "vite dev",
+        "check-types": "tsc"
     },
     "eslintConfig": {
       "extends": [

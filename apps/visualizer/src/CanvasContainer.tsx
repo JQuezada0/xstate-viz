@@ -1,6 +1,5 @@
 import React, { CSSProperties, useEffect, useRef } from "react";
 import { ZoomFactor } from "./canvasMachine";
-// import { useCanvas } from './CanvasContext';
 import { CanvasContext } from "./useInterpretCanvas";
 import { canvasMachine } from "./canvasMachine";
 import { useMachine } from "@xstate/react";
@@ -202,10 +201,12 @@ const dragMachine = dragModel.createMachine({
                   },
                 },
                 wheelPressed: {
-                  entry: raise(({ context: ctx, event: ev }) => ({
-                    type: "ENABLE_PANNING",
-                    sessionSeed: ev.sessionSeed,
-                  })),
+                  entry: ({ context: ctx, event: ev }) =>  {
+                    return ({
+                      type: "ENABLE_PANNING",
+                      sessionSeed: ev.sessionSeed,
+                    })
+                  },
                   exit: raise({
                     type: "DISABLE_PANNING",
                   }),

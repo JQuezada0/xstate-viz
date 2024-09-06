@@ -79,8 +79,6 @@ export const CanvasViewMachine: React.FC<{ machine: AnyStateMachine }> = ({}) =>
       () => !embed?.isEmbedded || embed.controls,
       [embed],
     );
-
-    console.log("SHOW CONTROLS?", showControls, embed)
   
     const showZoomButtonsInEmbed = useMemo(
       () => !embed?.isEmbedded || (embed.controls && embed.zoom),
@@ -100,28 +98,6 @@ export const CanvasViewMachine: React.FC<{ machine: AnyStateMachine }> = ({}) =>
         {!embed?.isEmbedded && (
           <Box data-testid="canvas-header" bg="gray.800" zIndex={1} padding="0">
             <CanvasHeader />
-            {/* <Box
-              bg="blue.600"
-              px="1"
-              py="2"
-              color="white"
-              textAlign="center"
-              fontWeight="600"
-            >
-              <Text>
-                ✨ Our{' '}
-                <Link
-                  href="https://stately.ai/editor?source=viz-banner"
-                  target="_blank"
-                  color="blue.50"
-                  textDecoration="underline"
-                  className="plausible-event-name=viz+editor-banner"
-                >
-                  new Stately visual editor
-                </Link>{' '}
-                is out now! ✨
-              </Text>
-            </Box> */}
           </Box>
         )}
         

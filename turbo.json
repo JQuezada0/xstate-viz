@@ -11,12 +11,16 @@
         "check-types": {
             "inputs": ["**/src", "!**/node_modules"] 
         },
+        "clean": {
+            "cache": false,
+            "dependsOn": ["^clean"]
+        },
         "build-js": {
             "dependsOn": ["^build-js", "install-dependencies"]
         },
         "check": {
             "inputs": ["**/src", "!**/node_modules"],
-            "dependsOn": ["//#check-types", "install-dependencies"] 
+            "dependsOn": ["^check-types", "install-dependencies"] 
         },
         "build-all": {
             "dependsOn": ["build-js"]

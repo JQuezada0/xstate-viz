@@ -1,0 +1,24 @@
+.canvas {
+  // background-size: 5px 5px;
+  // // background-image: radial-gradient(circle, #ffffff 1px, rgba(40, 67, 135, 1) 1px);
+  // background-image:
+  //   linear-gradient(to right, grey 1px, rgba(40, 67, 135, 1) 1px),
+  //   linear-gradient(to bottom, gret 1px, rgba(40, 67, 135, 1) 1px);
+    // background-image:
+    // linear-gradient(to right, white 1px, transparent 1px),
+    // linear-gradient(to bottom, white 1px, transparent 1px);
+    background:
+        linear-gradient(-90deg, rgba(255, 255, 255, .1) 0.5px, transparent 0px),
+        linear-gradient(rgba(255,255,255,.1) 0.5px, transparent 0px),
+        #f2f2f2;
+    background-size:
+        4px 4px;
+        background-color: #15151d;
+        // 80px 80px,
+        // 80px 80px,
+        // 80px 80px,
+        // 80px 80px,
+        // 80px 80px,
+        // 80px 80px;
+    
+}

@@ -1,4 +1,22 @@
 {
     "$schema": "https://turbo.build/schema.json",
-    "extends": ["//"]
+    "extends": ["//"],
+    "tasks": {
+        "check-types": {
+            "inputs": ["./src/**", "!**/node_modules"],
+            "outputs": ["./build/**"],
+            "cache": true,
+            "dependsOn": ["^check-types"]
+        },
+        "build-js": {
+            "inputs": ["./src/**", "!**/node_modules"],
+            "outputs": ["./build/**"],
+            "cache": true,
+            "dependsOn": ["^build-js"]
+        },
+        "clean": {
+            "cache": false,
+            "dependsOn": ["^clean"]
+        }
+    }
 }

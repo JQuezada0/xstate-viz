@@ -18,10 +18,8 @@
   "module": "dist/xstate-scxml.esm.js",
   "exports": {
     ".": {
-      "types": {
-        "default": "./src/index.ts"
-      },
-      "import": "./src/index"
+      "default": "./src/index",
+      "types": "./build/index"
     },
     "./package.json": "./package.json"
   },
@@ -33,7 +31,11 @@
     "type": "git",
     "url": "git+ssh://git@github.com/statelyai/xstate.git"
   },
-  "scripts": {},
+  "scripts": {
+    "check-types": "tsc",
+    "build-js": "tswc -- src -d build",
+    "clean": "rm -rf ./build"
+  },
   "bugs": {
     "url": "https://github.com/statelyai/xstate/issues"
   },

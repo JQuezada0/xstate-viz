@@ -1,4 +1,14 @@
 {
     "$schema": "https://turbo.build/schema.json",
-    "extends": ["//"]
+    "extends": ["//"],
+    "tasks": {
+        "check-types": {
+            "inputs": ["./src/**", "!**/node_modules"],
+            "dependsOn": ["^check-types"]
+        },
+        "build-js": {
+            "inputs": ["./src/**", "!**/node_modules"],
+            "dependsOn": ["^build-js"]
+        }
+    }
 }

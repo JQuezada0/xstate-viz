@@ -6,11 +6,9 @@ import { StateNodeViz } from './StateNodeViz';
 import { TransitionViz } from './TransitionViz';
 import { elkMachine } from './elkMachine';
 import { MachineViz } from './MachineViz';
-// import { useCanvas } from './CanvasContext';
 import { SimulationContext } from './SimulationContext';
 import { getAllEdges, StateElkNode } from './graphUtils';
 import { CanvasContext } from './useInterpretCanvas';
-import { createActor } from 'xstate';
 
 const GraphNode: React.FC<{ elkNode: StateElkNode }> = ({ elkNode }) => {
   return <StateNodeViz stateNode={elkNode.node.data} node={elkNode.node} />;
@@ -37,8 +35,6 @@ export const Graph: React.FC<{ digraph: DirectedGraphNode }> = ({
     sim.start()
     // elkMachine.start()
   }, [])
-
-  
 
   // const state = elkMachine.getSnapshot()
   // const [state, send] = useActor(elkMachine);

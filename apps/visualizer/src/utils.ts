@@ -93,19 +93,12 @@ export function getChildren(stateNode: StateNode): StateNode[] {
   const invoked = stateNode.config.invoke
 
   if (invoked && invoked.src && typeof invoked.src === "object" && "states" in stateNode.config.invoke.src) {
-    console.log("INVOKED MACHINE!", stateNode.config.invoke.src.root)
     return [stateNode.config.invoke.src.root]
   }
-
-  // if (stateNode.config.invoke && stateNode.config.invoke.src && ) {
-   
-  // }
 
   if (!stateNode.states) {
     return [];
   }
-
-  // console.log("GET CHILDREN OF!", stateNode)
 
   const children = Object.keys(stateNode.states).map((key) => {
     return stateNode.states[key];
@@ -123,8 +116,6 @@ export function getEdges(stateNode: StateNode): Array<Edge<any, any, any>> {
 
     const targets = target && target.length > 0 ? target : target;
 
-    // console.log("TARGET!??!", target)
-
     edges.push(...targets.flatMap((target) => {
       const innerTargets = target.target ?? []
 
@@ -137,32 +128,10 @@ export function getEdges(stateNode: StateNode): Array<Edge<any, any, any>> {
           order,
         }
 
-        console.log("EDGE!!", edge)
-
         return edge
       })
     }))
-
-    // targets.forEach((target) => {
-    //   edges.push({
-    //     event: target.eventType,
-    //     source: stateNode,
-    //     target: target.target!,
-    //     transition: t,
-    //     order,
-    //   });
-    // });
   });
-
-  // Object.keys(stateNode.on).forEach((eventType, order) => {
-  //   const transitions = stateNode.on[eventType];
-
-   
-  // });
-
-  // if (stateNode) {
-
-  // }
 
   return edges;
 }
